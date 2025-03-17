@@ -73,28 +73,8 @@ const filterTasksByDateRange = (tasks: Task[], startDate: Date, endDate: Date): 
  * Отримує задачі за вказаний день
  */
 const getTasksForDay = (date: Date): Task[] => {
-  const tasks = loadTasks();
-  
-  // Отримуємо всі задачі, незалежно від дати, якщо вони не виконані
-  const allActiveTasks = tasks.filter(task => !task.completed);
-  
-  // Отримуємо задачі, які мають бути виконані саме в цей день
-  const startOfDay = new Date(date);
-  startOfDay.setHours(0, 0, 0, 0);
-  
-  const endOfDay = new Date(date);
-  endOfDay.setHours(23, 59, 59, 999);
-  
-  const tasksForToday = filterTasksByDateRange(tasks, startOfDay, endOfDay);
-  
-  // Додаємо до звіту також прострочені задачі
-  const overdueTasksNotInToday = allActiveTasks.filter(task => {
-    const taskDate = safeParseDate(task.dueDate);
-    if (!taskDate) return false;
-    return taskDate < startOfDay && !tasksForToday.some(t => t.id === task.id);
-  });
-  
-  return [...tasksForToday, ...overdueTasksNotInToday];
+  // Повертаємо всі задачі, незалежно від дати
+  return loadTasks();
 };
 
 /**
@@ -115,19 +95,9 @@ const getTasksForWeek = (date: Date): { tasks: Task[], startDate: Date, endDate:
   endDate.setDate(endDate.getDate() + 6);
   endDate.setHours(23, 59, 59, 999);
   
-  // Отримуємо задачі за тиждень
-  const weekTasks = filterTasksByDateRange(tasks, startDate, endDate);
-  
-  // Додаємо прострочені активні задачі
-  const allActiveTasks = tasks.filter(task => !task.completed);
-  const overdueTasksNotInWeek = allActiveTasks.filter(task => {
-    const taskDate = safeParseDate(task.dueDate);
-    if (!taskDate) return false;
-    return taskDate < startDate && !weekTasks.some(t => t.id === task.id);
-  });
-  
+  // Отримуємо всі задачі
   return { 
-    tasks: [...weekTasks, ...overdueTasksNotInWeek], 
+    tasks: tasks, 
     startDate, 
     endDate 
   };
@@ -201,32 +171,68 @@ const sendWeeklyReport = async (): Promise<boolean> => {
  * Ініціалізує планувальник звітів
  */
 export const initReportScheduler = (): void => {
-  // Перевіряємо кожну хвилину, чи потрібно відправити звіт
+  console.log('Ініціалізуємо планувальник звітів...');
+  
+  // Додаємо контроль часу останньої відправки, щоб запобігти багаторазовій відправці
+  let lastDailyReportTime = '';
+  let lastWeeklyReportTime = '';
+  
+  // Перевіряємо кожні 15 секунд, чи потрібно відправити звіт
   setInterval(() => {
-    const settings = loadTelegramSettings();
-    
-    if (shouldSendDailyReport(settings)) {
-      sendDailyReport()
-        .then(success => {
-          if (success) {
-            console.log('Щоденний звіт успішно відправлено');
-          } else {
-            console.error('Помилка відправки щоденного звіту');
-          }
-        });
+    try {
+      // Перезавантажуємо налаштування при кожній перевірці, 
+      // щоб врахувати можливі зміни
+      const settings = loadTelegramSettings();
+      
+      // Отримуємо поточний час у форматі HH:MM, який використовується для порівняння
+      const now = new Date();
+      const currentTimeStr = `${now.getHours()}:${now.getMinutes()}`;
+      
+      console.log(`Перевірка розкладу звітів: ${currentTimeStr}`);
+      
+      // Перевіряємо щоденний звіт
+      if (shouldSendDailyReport(settings) && lastDailyReportTime !== currentTimeStr) {
+        lastDailyReportTime = currentTimeStr;
+        
+        console.log(`Відправка щоденного звіту o ${currentTimeStr}`);
+        
+        sendDailyReport()
+          .then(success => {
+            if (success) {
+              console.log('Щоденний звіт успішно відправлено');
+            } else {
+              console.error('Помилка відправки щоденного звіту');
+            }
+          })
+          .catch(error => {
+            console.error('Помилка під час відправки щоденного звіту:', error);
+          });
+      }
+      
+      // Перевіряємо щотижневий звіт
+      if (shouldSendWeeklyReport(settings) && lastWeeklyReportTime !== currentTimeStr) {
+        lastWeeklyReportTime = currentTimeStr;
+        
+        console.log(`Відправка щотижневого звіту o ${currentTimeStr}`);
+        
+        sendWeeklyReport()
+          .then(success => {
+            if (success) {
+              console.log('Щотижневий звіт успішно відправлено');
+            } else {
+              console.error('Помилка відправки щотижневого звіту');
+            }
+          })
+          .catch(error => {
+            console.error('Помилка під час відправки щотижневого звіту:', error);
+          });
+      }
+    } catch (error) {
+      console.error('Помилка в планувальнику звітів:', error);
     }
-    
-    if (shouldSendWeeklyReport(settings)) {
-      sendWeeklyReport()
-        .then(success => {
-          if (success) {
-            console.log('Щотижневий звіт успішно відправлено');
-          } else {
-            console.error('Помилка відправки щотижневого звіту');
-          }
-        });
-    }
-  }, 60000); // Перевіряємо кожну хвилину
+  }, 15000); // Перевіряємо кожні 15 секунд
+  
+  console.log('Планувальник звітів ініціалізовано');
 };
 
 /**
@@ -242,13 +248,14 @@ export const sendTestReport = async (): Promise<boolean> => {
   try {
     // Отримуємо всі задачі
     const today = new Date();
+    const reportDate = new Date(today);
     const tasks = getTasksForDay(today);
     
     // Використовуємо функцію форматування звіту
     const report = formatDailyReport(tasks, today);
     
     // Додаємо заголовок тестового звіту
-    const testReport = `<b>🧪 ТЕСТОВИЙ ЗВІТ</b>\n\n${report}`;
+    const testReport = `<b>🧪 ТЕСТОВИЙ ЗВІТ</b>\n<b>⏰ Час генерації:</b> ${reportDate.toLocaleTimeString('uk-UA')}\n\n${report}`;
     
     return await sendTelegramMessage(settings.botToken, settings.chatId, testReport);
   } catch (error) {
