@@ -557,17 +557,23 @@ export const JarvisAssistant = React.forwardRef<
     
     // Заміна часу, коли він вказаний як "о 15:30" - форматуємо для кращої вимови
     text = text.replace(/о (\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
-      // Для кращої вимови розділяємо цифри пробілами
       const hoursNum = parseInt(hours);
-      let hoursText = hours;
+      
+      // Правильна форма "годин" залежно від числа
+      let hoursForm = "годин";
+      if (hoursNum === 1 || hoursNum === 21) {
+        hoursForm = "годину";
+      } else if ([2, 3, 4].includes(hoursNum % 10) && ![12, 13, 14].includes(hoursNum)) {
+        hoursForm = "години";
+      }
       
       // Якщо час без хвилин (15:00)
       if (minutes === "00") {
-        return `о ${hoursText} год'ині`;
+        return `в ${hoursNum} ${hoursForm}`;
       }
       
       // Якщо є хвилини
-      return `о ${hoursText} год'ині ${minutes}`;
+      return `в ${hoursNum} ${hoursForm} ${minutes}`;
     });
     
     // Заміна чисел на слова з правильними відмінками
@@ -747,12 +753,20 @@ export const JarvisAssistant = React.forwardRef<
           const hours = taskDate.getHours();
           const minutes = taskDate.getMinutes();
           
+          // Правильна форма "годин" залежно від числа
+          let hoursForm = "годин";
+          if (hours === 1 || hours === 21) {
+            hoursForm = "годину";
+          } else if ([2, 3, 4].includes(hours % 10) && ![12, 13, 14].includes(hours)) {
+            hoursForm = "години";
+          }
+          
           // Якщо час без хвилин (15:00)
           if (minutes === 0) {
-            tasksText += `О ${hours} годині - ${task.title}. `;
+            tasksText += `В ${hours} ${hoursForm} - ${task.title}. `;
           } else {
             // Якщо є хвилини
-            tasksText += `О ${hours} годині ${minutes} - ${task.title}. `;
+            tasksText += `В ${hours} ${hoursForm} ${minutes} - ${task.title}. `;
           }
         });
 
