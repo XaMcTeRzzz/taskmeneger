@@ -559,17 +559,15 @@ export const JarvisAssistant = React.forwardRef<
     text = text.replace(/о (\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
       // Для кращої вимови розділяємо цифри пробілами
       const hoursNum = parseInt(hours);
-      let hoursText = hours.length === 1 ? hours : hours.split('').join(' ');
-      const minutesText = minutes.split('').join(' ');
+      let hoursText = hours;
       
-      if (minutesText === "0 0") {
-        if (hoursNum === 1 || hoursNum === 21) {
-          return `о ${hoursText}-й год'ині`;
-        }
-        return `о ${hoursText}-й год'ині`;
+      // Якщо час без хвилин (15:00)
+      if (minutes === "00") {
+        return `о ${hoursText} год'ині`;
       }
       
-      return `о ${hoursText} год'ині ${minutesText} хвил'ин`;
+      // Якщо є хвилини
+      return `о ${hoursText} год'ині ${minutes}`;
     });
     
     // Заміна чисел на слова з правильними відмінками
@@ -743,11 +741,19 @@ export const JarvisAssistant = React.forwardRef<
         // Сортуємо задачі за часом
         todayTasks.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Спрощуємо текст, щоб Джарвіс читав тільки тему та час
+        // Спрощуємо текст, щоб Джарвіс читав тільки тему та час у форматі "о 12 годині - задача"
         todayTasks.forEach(task => {
-          const time = formatTime(new Date(task.date));
-          // Прибираємо категорію, спрощуємо повідомлення
-          tasksText += `О ${time} ${task.title}. `;
+          const taskDate = new Date(task.date);
+          const hours = taskDate.getHours();
+          const minutes = taskDate.getMinutes();
+          
+          // Якщо час без хвилин (15:00)
+          if (minutes === 0) {
+            tasksText += `О ${hours} годині - ${task.title}. `;
+          } else {
+            // Якщо є хвилини
+            tasksText += `О ${hours} годині ${minutes} - ${task.title}. `;
+          }
         });
 
         tasksText += "Чим ще можу допомогти?";
