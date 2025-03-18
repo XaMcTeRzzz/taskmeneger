@@ -175,3 +175,26 @@
     opacity: 1;
   }
 }
+
+/* Toast стилі */
+[data-sonner-toaster][data-theme="system"] {
+  --scale: 0.9;
+  --transition-duration: 200ms;
+  font-size: 0.875rem;
+}
+
+[data-sonner-toaster] [data-sonner-toast] {
+  --y: -0.5rem;
+  --lift-amount: 0.35rem;
+  border-radius: 0.5rem;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-mounted] {
+  transform: translate3d(0, var(--lift-amount), 0) scale(var(--scale));
+}
+
+[data-sonner-toaster] [data-sonner-toast][data-visible] {
+  transform: translate3d(0, 0, 0) scale(var(--scale));
+  opacity: 1;
+}
