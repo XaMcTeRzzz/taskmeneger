@@ -1,4 +1,5 @@
 import { Calendar, ListTodo, Settings as SettingsIcon, Mic } from "lucide-react";
+import { cn } from "../lib/utils";
 
 interface BottomNavigationProps {
   activeTab: string;
@@ -30,18 +31,17 @@ export function BottomNavigation({ activeTab, onTabChange, onMicClick, isListeni
         <span className="text-xs mt-1">Мої задачі</span>
       </button>
       
-      {/* Кнопка мікрофона Джарвіса */}
-      {onMicClick && (
-        <button
-          onClick={onMicClick}
-          className={`flex flex-col items-center justify-center w-20 h-full transition-colors ${
-            isListening ? "text-yellow-400" : "text-neon-green"
-          }`}
-        >
-          <Mic className="h-5 w-5" />
-          <span className="text-xs mt-1">Джарвіс</span>
-        </button>
-      )}
+      {/* Кнопка мікрофона Siri AI */}
+      <button
+        onClick={onMicClick}
+        className={cn(
+          "flex flex-col items-center justify-center w-16 h-16 rounded-full bg-primary text-primary-foreground shadow-lg transition-all duration-200 hover:bg-primary/90",
+          isListening && "animate-pulse"
+        )}
+      >
+        <Mic className="w-6 h-6" />
+        <span className="text-xs mt-1">Siri AI</span>
+      </button>
       
       <button
         onClick={() => onTabChange("settings")}

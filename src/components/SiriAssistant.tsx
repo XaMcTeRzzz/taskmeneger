@@ -5,7 +5,7 @@ import { toast } from "@/hooks/use-toast";
 import { Task } from "@/components/TasksList";
 import { SpeechRecognition, SpeechRecognitionEvent } from "@/types/speech-recognition";
 
-interface JarvisAssistantProps {
+interface SiriAssistantProps {
   tasks: Task[];
   selectedDate?: Date;
   onFilterDate?: (date: Date) => void;
@@ -13,22 +13,22 @@ interface JarvisAssistantProps {
   onListeningChange?: (isListening: boolean) => void;
 }
 
-// Перелік команд, які розуміє Джарвіс
+// Перелік команд, які розуміє Siri AI
 const COMMANDS = {
-  ACTIVATE: ["джарвіс", "jarvis", "джарвис", "jarvis", "жарвіс", "дж", "жарвіс"],
+  ACTIVATE: ["siri", "сірі", "сири", "сіри", "сірій", "hey siri", "хей сірі"],
   READ_TASKS: ["задачі", "задача", "мої задачі", "всі задачі", "що заплановано", "розклад"],
   EDIT_TASK: ["редагувати", "змінити", "оновити"],
   STOP: ["стоп", "зупинись", "замовкни", "перестань", "досить", "stop"],
 };
 
 // Ключ для localStorage
-const ACTIVE_TASKS_STORAGE_KEY = "jarvis_active_tasks";
+const ACTIVE_TASKS_STORAGE_KEY = "siri_active_tasks";
 
 // Додаємо після інших ключів для localStorage
-const JARVIS_SETTINGS_KEY = "jarvis_settings";
+const SIRI_SETTINGS_KEY = "siri_settings";
 
-// Інтерфейс для налаштувань Джарвіса
-interface JarvisSettings {
+// Інтерфейс для налаштувань Siri AI
+interface Settings {
   greeting: string;
   userName: string;
   userTitle: string;
@@ -37,7 +37,7 @@ interface JarvisSettings {
 }
 
 // Дефолтні налаштування
-const DEFAULT_SETTINGS: JarvisSettings = {
+const DEFAULT_SETTINGS: Settings = {
   greeting: "Да",
   userName: "",
   userTitle: "сер",
@@ -68,13 +68,13 @@ const generateWaveform = (): number[] => {
 };
 
 // Створюємо компонент з підтримкою ref
-export const JarvisAssistant = React.forwardRef<
+export const SiriAssistant = React.forwardRef<
   { startListening: () => void },
-  JarvisAssistantProps
+  SiriAssistantProps
 >(({ tasks, selectedDate, onFilterDate, onAddTask, onListeningChange }, ref) => {
   // Стан прослуховування
   const [isListening, setIsListening] = useState(false);
-  // Стан відтворення відповіді Джарвіса 
+  // Стан відтворення відповіді Siri AI 
   const [isSpeaking, setIsSpeaking] = useState(false);
   // Анімована іконка
   const [waveform, setWaveform] = useState<number[]>([]);
@@ -91,8 +91,8 @@ export const JarvisAssistant = React.forwardRef<
   const recognitionRef = useRef<SpeechRecognition | null>(null);
   const speechSynthesisRef = useRef<SpeechSynthesisUtterance | null>(null);
 
-  // Додаємо стан для налаштувань Джарвіса
-  const [jarvisSettings, setJarvisSettings] = useState<JarvisSettings>(DEFAULT_SETTINGS);
+  // Додаємо стан для налаштувань Siri AI
+  const [settings, setSettings] = useState<Settings>(DEFAULT_SETTINGS);
   // Стан для показу діалогу налаштувань
   const [showSettings, setShowSettings] = useState<boolean>(false);
 
@@ -235,37 +235,37 @@ export const JarvisAssistant = React.forwardRef<
 
   // Завантажуємо налаштування при ініціалізації
   useEffect(() => {
-    loadJarvisSettings();
+    loadSettings();
   }, []);
 
-  // Функція для завантаження налаштувань Джарвіса
-  const loadJarvisSettings = () => {
+  // Функція для завантаження налаштувань Siri AI
+  const loadSettings = () => {
     try {
-      const savedSettings = localStorage.getItem(JARVIS_SETTINGS_KEY);
+      const savedSettings = localStorage.getItem(SIRI_SETTINGS_KEY);
       if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings) as JarvisSettings;
-        setJarvisSettings(parsedSettings);
-        console.log("Завантажено налаштування Джарвіса:", parsedSettings);
+        const parsedSettings = JSON.parse(savedSettings);
+        setSettings(parsedSettings);
+        console.log("Завантажено налаштування Siri AI:", parsedSettings);
       }
     } catch (error) {
-      console.error("Помилка при завантаженні налаштувань Джарвіса:", error);
+      console.error("Помилка при завантаженні налаштувань Siri AI:", error);
     }
   };
 
-  // Функція для збереження налаштувань Джарвіса
-  const saveJarvisSettings = (settings: JarvisSettings) => {
+  // Функція для збереження налаштувань Siri AI
+  const saveSettings = (settings: Settings) => {
     try {
-      localStorage.setItem(JARVIS_SETTINGS_KEY, JSON.stringify(settings));
-      setJarvisSettings(settings);
-      console.log("Збережено налаштування Джарвіса:", settings);
+      localStorage.setItem(SIRI_SETTINGS_KEY, JSON.stringify(settings));
+      setSettings(settings);
+      console.log("Збережено налаштування Siri AI:", settings);
     } catch (error) {
-      console.error("Помилка при збереженні налаштувань Джарвіса:", error);
+      console.error("Помилка при збереженні налаштувань Siri AI:", error);
     }
   };
 
   // Функція для формування привітання
   const getGreeting = () => {
-    const { greeting, userName, userTitle } = jarvisSettings;
+    const { greeting, userName, userTitle } = settings;
     let fullGreeting = `${greeting}`;
     
     if (userName) {
@@ -338,7 +338,7 @@ export const JarvisAssistant = React.forwardRef<
           speakText("Зупиняю озвучування");
         } else {
           // Якщо команда не розпізнана
-          speakText("Вибачте, я не розумію цю команду. Скажіть 'Джарвіс' для перегляду задач або 'Редагувати' для зміни задачі.");
+          speakText("Вибачте, я не розумію цю команду. Скажіть 'Siri' для перегляду задач або 'Редагувати' для зміни задачі.");
         }
       };
       
@@ -449,7 +449,7 @@ export const JarvisAssistant = React.forwardRef<
   // Функція для синтезу мовлення через Google Cloud TTS
   const speakWithGoogleTTS = async (text: string) => {
     try {
-      const settings = JSON.parse(localStorage.getItem(JARVIS_SETTINGS_KEY) || '{}');
+      const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
       
       if (!settings.googleApiKey) {
         throw new Error('API ключ Google Cloud не налаштовано');
@@ -626,14 +626,14 @@ export const JarvisAssistant = React.forwardRef<
     
     // Додаємо обробники подій
     utterance.onstart = () => {
-      console.log("Джарвіс почав говорити");
+      console.log("Siri AI почала говорити");
       setIsSpeaking(true);
       // Використовуємо наявну анімацію, яка вже є в коді (припускаємо що generateWaveform вже існує)
       setWaveform(Array.from({ length: 10 }, () => 0.2 + Math.random() * 0.8));
     };
     
     utterance.onend = () => {
-      console.log("Джарвіс закінчив говорити");
+      console.log("Siri AI закінчила говорити");
       setIsSpeaking(false);
       setWaveform([]);
     };
@@ -653,7 +653,7 @@ export const JarvisAssistant = React.forwardRef<
 
   // Оновлена функція для озвучування тексту
   const speakText = async (text: string) => {
-    const settings = JSON.parse(localStorage.getItem(JARVIS_SETTINGS_KEY) || '{}');
+    const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
     
     if (settings.useGoogleTTS && settings.googleApiKey) {
       await speakWithGoogleTTS(text);
@@ -665,7 +665,7 @@ export const JarvisAssistant = React.forwardRef<
   // Функція для отримання подій з Google Calendar
   const getGoogleCalendarEvents = async () => {
     try {
-      const settings = JSON.parse(localStorage.getItem(JARVIS_SETTINGS_KEY) || '{}');
+      const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
       
       if (!settings.googleApiKey) {
         return null;
@@ -698,8 +698,8 @@ export const JarvisAssistant = React.forwardRef<
   // Оновлена функція обробки команди "задачі"
   const handleTasksCommand = async () => {
     try {
-      const settings = JSON.parse(localStorage.getItem(JARVIS_SETTINGS_KEY) || '{}');
-      const greeting = `${settings.greeting}${settings.userName ? ', ' + settings.userName : ''}${settings.userTitle ? ', ' + settings.userTitle : ''}. Я Джарвіс, ваш особистий асистент. Давайте подивимося на ваші задачі на сьогодні.`;
+      const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
+      const greeting = `${settings.greeting}${settings.userName ? ', ' + settings.userName : ''}${settings.userTitle ? ', ' + settings.userTitle : ''}. Я Siri AI, ваш особистий асистент. Давайте подивимося на ваші задачі на сьогодні.`;
       
       await speakText(greeting);
 
@@ -747,7 +747,7 @@ export const JarvisAssistant = React.forwardRef<
         // Сортуємо задачі за часом
         todayTasks.sort((a, b) => a.date.getTime() - b.date.getTime());
 
-        // Спрощуємо текст, щоб Джарвіс читав тільки тему та час у форматі "о 12 годині - задача"
+        // Спрощуємо текст, щоб Siri AI читала тільки тему та час у форматі "о 12 годині - задача"
         todayTasks.forEach(task => {
           const taskDate = new Date(task.date);
           const hours = taskDate.getHours();
@@ -872,12 +872,12 @@ export const JarvisAssistant = React.forwardRef<
     }
   };
 
-  // Компонент налаштувань Джарвіса
-  const JarvisSettingsDialog = () => {
-    const [settings, setSettings] = useState<JarvisSettings>({...jarvisSettings});
+  // Компонент налаштувань Siri AI
+  const SettingsPanel = () => {
+    const [settings, setSettings] = useState<Settings>({...settings});
     
     const handleSave = () => {
-      saveJarvisSettings(settings);
+      saveSettings(settings);
       setShowSettings(false);
       
       // Тестове привітання
@@ -888,7 +888,7 @@ export const JarvisAssistant = React.forwardRef<
     return (
       <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50">
         <div className="bg-card p-6 rounded-lg shadow-lg w-[400px] space-y-4">
-          <h2 className="text-lg font-bold">Налаштування Джарвіса</h2>
+          <h2 className="text-lg font-bold">Налаштування Siri AI</h2>
           
           <div className="space-y-4">
             <div className="space-y-2">
@@ -954,7 +954,7 @@ export const JarvisAssistant = React.forwardRef<
   return (
     <div className="fixed bottom-28 right-1 z-50 flex flex-col items-end gap-2">
       {/* Показуємо діалог налаштувань, якщо showSettings = true */}
-      {showSettings && <JarvisSettingsDialog />}
+      {showSettings && <SettingsPanel />}
       
       {/* Спливаюча підказка/статус */}
       {(isSpeaking || isListening) && (
@@ -993,7 +993,7 @@ export const JarvisAssistant = React.forwardRef<
   );
 });
 
-JarvisAssistant.displayName = "JarvisAssistant";
+SiriAssistant.displayName = "SiriAssistant";
 
 // Експортуємо додаткові властивості для використання в інших компонентах
-export { type JarvisAssistantProps }; 
+export { type SiriAssistantProps }; 

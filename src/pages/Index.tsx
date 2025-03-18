@@ -5,7 +5,7 @@ import { TasksList, Task } from "@/components/TasksList";
 import { AddTaskButton } from "@/components/AddTaskButton";
 import { AddTaskForm } from "@/components/AddTaskForm";
 import { Settings } from "@/components/Settings";
-import { JarvisAssistant } from "@/components/JarvisAssistant";
+import { SiriAssistant } from "@/components/SiriAssistant";
 import { toast } from "@/hooks/use-toast";
 import { Calendar } from "@/components/Calendar";
 import { AddTaskDialog } from "@/components/AddTaskDialog";
@@ -52,9 +52,9 @@ const Index = () => {
   const [showAddForm, setShowAddForm] = useState(false);
   const [showAddTask, setShowAddTask] = useState(false);
   
-  // Додаємо стан для відстеження статусу прослуховування Джарвіса
-  const [isJarvisListening, setIsJarvisListening] = useState(false);
-  const jarvisRef = useRef<{ startListening?: () => void }>(null);
+  // Додаємо стан для відстеження статусу прослуховування Siri AI
+  const [isListening, setIsListening] = useState(false);
+  const siriAssistantRef = useRef<{ startListening?: () => void }>(null);
   
   useEffect(() => {
     const savedTasks = localStorage.getItem('tasks');
@@ -341,10 +341,10 @@ const Index = () => {
     }
   };
   
-  // Функція для активації мікрофона Джарвіса
-  const handleJarvisMicClick = () => {
-    if (jarvisRef.current && jarvisRef.current.startListening) {
-      jarvisRef.current.startListening();
+  // Функція для активації мікрофона Siri AI
+  const handleMicrophoneClick = () => {
+    if (siriAssistantRef.current) {
+      siriAssistantRef.current.startListening();
     }
   };
 
@@ -421,21 +421,21 @@ const Index = () => {
         )}
       </div>
 
-      {/* Джарвіс завжди доступний у будь-якому стані та меню */}
-      <JarvisAssistant 
-        ref={jarvisRef}
+      {/* Siri AI завжди доступна у будь-якому стані та меню */}
+      <SiriAssistant
+        ref={siriAssistantRef}
         tasks={tasks}
         selectedDate={selectedDate}
         onFilterDate={handleDateSelect}
-        onAddTask={() => setShowAddTask(true)}
-        onListeningChange={setIsJarvisListening}
+        onAddTask={handleTaskSubmit}
+        onListeningChange={setIsListening}
       />
       
       <BottomNavigation 
         activeTab={activeTab} 
         onTabChange={handleTabChange} 
-        onMicClick={handleJarvisMicClick}
-        isListening={isJarvisListening}
+        onMicClick={handleMicrophoneClick}
+        isListening={isListening}
       />
 
       {showAddTask && (

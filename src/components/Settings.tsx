@@ -34,25 +34,33 @@ interface SettingsFormValues {
   welcomeMessage: string;
 }
 
-// Оновлюємо інтерфейс налаштувань Джарвіса
-interface JarvisSettings {
+// Оновлюємо інтерфейс налаштувань Siri AI
+interface SiriSettings {
   greeting: string;
   userName: string;
   userTitle: string;
-  googleApiKey: string;
   useGoogleTTS: boolean;
+  googleApiKey: string;
+  voiceLanguage: string;
+  voiceName: string;
+  voiceRate: number;
+  voicePitch: number;
 }
 
 // Константа для ключа localStorage
-const JARVIS_SETTINGS_KEY = "jarvis_settings";
+const SIRI_SETTINGS_KEY = "siri_settings";
 
 // Оновлюємо дефолтні налаштування
-const DEFAULT_JARVIS_SETTINGS: JarvisSettings = {
-  greeting: "Доброго дня",
+const DEFAULT_SIRI_SETTINGS: SiriSettings = {
+  greeting: "Привіт",
   userName: "",
-  userTitle: "сер",
+  userTitle: "",
+  useGoogleTTS: false,
   googleApiKey: "",
-  useGoogleTTS: false
+  voiceLanguage: "uk-UA",
+  voiceName: "",
+  voiceRate: 1,
+  voicePitch: 1,
 };
 
 export function Settings() {
@@ -61,8 +69,8 @@ export function Settings() {
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("uk");
   
-  // Додаємо стан для налаштувань Джарвіса
-  const [jarvisSettings, setJarvisSettings] = useState<JarvisSettings>(DEFAULT_JARVIS_SETTINGS);
+  // Додаємо стан для налаштувань Siri AI
+  const [siriSettings, setSiriSettings] = useState<SiriSettings>(DEFAULT_SIRI_SETTINGS);
   // Стан для відтворення тестового привітання
   const [isSpeaking, setIsSpeaking] = useState(false);
   
@@ -95,8 +103,8 @@ export function Settings() {
       form.reset(parsedSettings);
     }
     
-    // Завантажуємо налаштування Джарвіса
-    loadJarvisSettings();
+    // Завантажуємо налаштування Siri AI
+    loadSiriSettings();
     
     // Завантажуємо налаштування Telegram при ініціалізації
     const settings = loadTelegramSettings();
@@ -106,87 +114,65 @@ export function Settings() {
     initReportScheduler();
   }, [form]);
 
-  // Функція для завантаження налаштувань Джарвіса
-  const loadJarvisSettings = () => {
+  // Функція для завантаження налаштувань Siri AI
+  const loadSiriSettings = () => {
     try {
-      const savedSettings = localStorage.getItem(JARVIS_SETTINGS_KEY);
+      const savedSettings = localStorage.getItem(SIRI_SETTINGS_KEY);
       if (savedSettings) {
-        const parsedSettings = JSON.parse(savedSettings) as JarvisSettings;
-        setJarvisSettings(parsedSettings);
-        console.log("Завантажено налаштування Джарвіса:", parsedSettings);
+        const parsedSettings = JSON.parse(savedSettings) as SiriSettings;
+        setSiriSettings(parsedSettings);
+        console.log("Завантажено налаштування Siri AI:", parsedSettings);
       }
     } catch (error) {
-      console.error("Помилка при завантаженні налаштувань Джарвіса:", error);
+      console.error("Помилка при завантаженні налаштувань Siri AI:", error);
     }
   };
 
-  // Функція для збереження налаштувань Джарвіса
-  const saveJarvisSettings = (settings: JarvisSettings) => {
+  // Функція для збереження налаштувань Siri AI
+  const saveSiriSettings = (settings: SiriSettings) => {
     try {
-      localStorage.setItem(JARVIS_SETTINGS_KEY, JSON.stringify(settings));
-      setJarvisSettings(settings);
-      console.log("Збережено налаштування Джарвіса:", settings);
-      
+      localStorage.setItem(SIRI_SETTINGS_KEY, JSON.stringify(settings));
+      setSiriSettings(settings);
+      console.log("Збережено налаштування Siri AI:", settings);
       toast({
-        title: "Налаштування Джарвіса збережено",
-        description: "Налаштування голосового асистента оновлено",
+        title: "Налаштування Siri AI збережено",
+        description: "Ваші налаштування успішно збережено",
       });
     } catch (error) {
-      console.error("Помилка при збереженні налаштувань Джарвіса:", error);
-      
+      console.error("Помилка при збереженні налаштувань Siri AI:", error);
       toast({
         title: "Помилка",
-        description: "Не вдалося зберегти налаштування Джарвіса",
-        variant: "destructive"
+        description: "Не вдалося зберегти налаштування Siri AI",
+        variant: "destructive",
       });
     }
   };
 
   // Функція для тестування привітання
   const testGreeting = () => {
-    if (window.speechSynthesis) {
-      const { greeting, userName, userTitle } = jarvisSettings;
-      let fullGreeting = `${greeting}`;
-      
-      if (userName) {
-        fullGreeting += `, ${userName}`;
-      }
-      
-      if (userTitle && (!userName || userName.trim() === "")) {
-        fullGreeting += `, ${userTitle}`;
-      }
-      
-      fullGreeting += ". Це тестове привітання від Джарвіса.";
-      
-      // Зупиняємо попереднє мовлення
-      if (window.speechSynthesis.speaking) {
-        window.speechSynthesis.cancel();
-      }
-      
-      const utterance = new SpeechSynthesisUtterance(fullGreeting);
-      utterance.lang = 'uk-UA';
-      utterance.rate = 0.9;
-      
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-      };
-      
-      utterance.onend = () => {
-        setIsSpeaking(false);
-      };
-      
-      utterance.onerror = () => {
-        setIsSpeaking(false);
-      };
-      
-      window.speechSynthesis.speak(utterance);
-    } else {
-      toast({
-        title: "Не підтримується",
-        description: "Ваш браузер не підтримує синтез мовлення",
-        variant: "destructive"
-      });
+    let fullGreeting = siriSettings.greeting;
+    if (siriSettings.userName) {
+      fullGreeting += `, ${siriSettings.userName}`;
     }
+    if (siriSettings.userTitle) {
+      fullGreeting += `, ${siriSettings.userTitle}`;
+    }
+    fullGreeting += ". Це тестове привітання від Siri AI.";
+    
+    const utterance = new SpeechSynthesisUtterance(fullGreeting);
+    utterance.lang = siriSettings.voiceLanguage;
+    utterance.rate = siriSettings.voiceRate;
+    utterance.pitch = siriSettings.voicePitch;
+    
+    if (siriSettings.voiceName) {
+      const voices = speechSynthesis.getVoices();
+      const selectedVoice = voices.find(voice => voice.name === siriSettings.voiceName);
+      if (selectedVoice) {
+        utterance.voice = selectedVoice;
+      }
+    }
+    
+    speechSynthesis.speak(utterance);
   };
 
   useEffect(() => {
@@ -253,9 +239,9 @@ export function Settings() {
     }, 800);
   };
 
-  // Обробник зміни налаштувань Джарвіса
-  const handleJarvisSettingChange = (field: keyof JarvisSettings, value: string) => {
-    setJarvisSettings(prev => ({
+  // Обробник зміни налаштувань Siri AI
+  const handleSiriSettingsChange = (field: keyof SiriSettings, value: string | number | boolean) => {
+    setSiriSettings(prev => ({
       ...prev,
       [field]: value
     }));
@@ -372,147 +358,63 @@ export function Settings() {
     <div className="space-y-6 animate-slide-up">
       <h2 className="text-xl font-semibold text-primary">Налаштування</h2>
       
-      {/* Додаємо картку з налаштуваннями Джарвіса */}
-      <Card className="glass-card">
+      {/* Додаємо картку з налаштуваннями Siri AI */}
+      <Card>
         <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Mic className="h-5 w-5" />
-            Голосовий асистент "Джарвіс"
+          <CardTitle>
+            Голосовий асистент "Siri AI"
           </CardTitle>
-          <CardDescription>Налаштування звертання та голосового синтезу</CardDescription>
+          <CardDescription>
+            Налаштуйте голосового асистента під себе
+          </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
-          <div className="grid gap-4">
+          {/* Форма налаштувань */}
+          <div className="space-y-4">
             <div className="space-y-2">
-              <Label htmlFor="jarvis-greeting">Привітання</Label>
+              <Label htmlFor="greeting">Привітання</Label>
               <Input
-                id="jarvis-greeting"
-                value={jarvisSettings.greeting}
-                onChange={(e) => handleJarvisSettingChange('greeting', e.target.value)}
-                placeholder="Доброго дня"
-              />
-              <p className="text-xs text-muted-foreground">Наприклад: Доброго дня, Вітаю, Привіт</p>
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="jarvis-userName">Ваше ім'я (опціонально)</Label>
-              <Input
-                id="jarvis-userName"
-                value={jarvisSettings.userName}
-                onChange={(e) => handleJarvisSettingChange('userName', e.target.value)}
-                placeholder="Залиште порожнім, щоб не використовувати"
+                id="greeting"
+                value={siriSettings.greeting}
+                onChange={(e) => handleSiriSettingsChange("greeting", e.target.value)}
+                placeholder="Наприклад: Привіт"
               />
             </div>
             
             <div className="space-y-2">
-              <Label htmlFor="jarvis-userTitle">Звертання</Label>
+              <Label htmlFor="userName">Ваше ім'я</Label>
               <Input
-                id="jarvis-userTitle"
-                value={jarvisSettings.userTitle}
-                onChange={(e) => handleJarvisSettingChange('userTitle', e.target.value)}
-                placeholder="сер"
+                id="userName"
+                value={siriSettings.userName}
+                onChange={(e) => handleSiriSettingsChange("userName", e.target.value)}
+                placeholder="Як до вас звертатися"
               />
-              <p className="text-xs text-muted-foreground">Наприклад: сер, мадам, пане, пані</p>
-            </div>
-
-            <Separator className="my-4" />
-            
-            <div className="space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Google Cloud Text-to-Speech</Label>
-                  <p className="text-xs text-muted-foreground">
-                    Використовувати професійний голосовий синтез від Google
-                  </p>
-                </div>
-                <Switch
-                  checked={jarvisSettings.useGoogleTTS}
-                  onCheckedChange={(checked) => 
-                    handleJarvisSettingChange('useGoogleTTS', checked.toString())
-                  }
-                />
-              </div>
-
-              {jarvisSettings.useGoogleTTS && (
-                <div className="space-y-2">
-                  <Label htmlFor="google-api-key">API ключ Google Cloud</Label>
-                  <div className="flex gap-2">
-                    <Input
-                      id="google-api-key"
-                      type="password"
-                      value={jarvisSettings.googleApiKey}
-                      onChange={(e) => handleJarvisSettingChange('googleApiKey', e.target.value)}
-                      placeholder="Введіть ваш API ключ Google Cloud"
-                    />
-                    <Button
-                      type="button"
-                      variant="outline"
-                      onClick={() => {
-                        const fileInput = document.createElement('input');
-                        fileInput.type = 'file';
-                        fileInput.accept = '.json';
-                        fileInput.onchange = async (e) => {
-                          const file = (e.target as HTMLInputElement).files?.[0];
-                          if (file) {
-                            try {
-                              const text = await file.text();
-                              const json = JSON.parse(text);
-                              if (json.private_key) {
-                                handleJarvisSettingChange('googleApiKey', json.private_key);
-                                toast({
-                                  title: "API ключ завантажено",
-                                  description: "Файл конфігурації Google Cloud успішно завантажено",
-                                });
-                              }
-                            } catch (error) {
-                              toast({
-                                title: "Помилка",
-                                description: "Не вдалося прочитати файл конфігурації",
-                                variant: "destructive"
-                              });
-                            }
-                          }
-                        };
-                        fileInput.click();
-                      }}
-                    >
-                      Завантажити файл
-                    </Button>
-                  </div>
-                  <p className="text-xs text-muted-foreground">
-                    Введіть API ключ вручну або завантажте файл конфігурації з Google Cloud Console
-                  </p>
-                </div>
-              )}
             </div>
             
-            <div className="pt-2">
-              <p className="text-sm font-medium">Звучатиме як:</p>
-              <p className="text-sm">"{jarvisSettings.greeting}. Я Джарвіс, ваш особистий асистент.{jarvisSettings.userName ? ` ${jarvisSettings.userName},` : ''} {jarvisSettings.userTitle}. Давайте подивимося на ваші задачі на сьогодні."</p>
+            <div className="space-y-2">
+              <Label htmlFor="userTitle">Звертання</Label>
+              <Input
+                id="userTitle"
+                value={siriSettings.userTitle}
+                onChange={(e) => handleSiriSettingsChange("userTitle", e.target.value)}
+                placeholder="Наприклад: пане"
+              />
             </div>
             
-            <div className="flex gap-2 pt-2">
-              <Button 
-                type="button" 
-                variant="outline"
-                onClick={testGreeting}
-                className="flex items-center gap-2"
-                disabled={isSpeaking}
-              >
-                {isSpeaking ? "Відтворення..." : "Прослухати"}
-              </Button>
-              
-              <Button 
-                type="button"
-                onClick={() => saveJarvisSettings(jarvisSettings)}
-                className="flex items-center gap-2"
-              >
-                <SaveIcon className="h-4 w-4" />
-                Зберегти налаштування
+            <div className="space-y-2">
+              <Label>Приклад привітання</Label>
+              <p className="text-sm">"{siriSettings.greeting}. Я Siri AI, ваш особистий асистент.{siriSettings.userName ? ` ${siriSettings.userName},` : ''} {siriSettings.userTitle}. Давайте подивимося на ваші задачі на сьогодні."</p>
+              <Button onClick={testGreeting} variant="outline" size="sm">
+                Тест привітання
               </Button>
             </div>
           </div>
         </CardContent>
+        <CardFooter>
+          <Button onClick={() => saveSiriSettings(siriSettings)}>
+            Зберегти налаштування
+          </Button>
+        </CardFooter>
       </Card>
       
       <Card className="glass-card">
