@@ -61,6 +61,12 @@ const formatTime = (date: Date): string => {
   }).format(date);
 };
 
+// Додамо функцію для генерації хвильової анімації
+const generateWaveform = (): number[] => {
+  // Створюємо масив з 10 випадкових чисел від 0.2 до 1
+  return Array.from({ length: 10 }, () => 0.2 + Math.random() * 0.8);
+};
+
 // Створюємо компонент з підтримкою ref
 export const JarvisAssistant = React.forwardRef<
   { startListening: () => void },
@@ -158,22 +164,34 @@ export const JarvisAssistant = React.forwardRef<
   
   // Функція для вибору найкращого голосу
   const selectBestVoice = (voices: VoiceOption[]) => {
-    // Спробуємо знайти український чоловічий голос
-    let bestVoice = voices.find(v => v.lang.includes('uk') && v.isNative && 
-      (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('man')));
+    // Спочатку шукаємо українські чоловічі голоси
+    let bestVoice = voices.find(v => 
+      v.lang.includes('uk') && 
+      (v.name.toLowerCase().includes('male') || 
+       v.name.toLowerCase().includes('чоловік') || 
+       v.name.toLowerCase().includes('man'))
+    );
     
-    // Якщо українського чоловічого голосу немає, спробуємо знайти російський чоловічий
+    // Якщо українського чоловічого голосу немає, шукаємо російський чоловічий
     if (!bestVoice) {
-      bestVoice = voices.find(v => v.lang.includes('ru') && v.isNative && 
-        (v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('man')));
+      bestVoice = voices.find(v => 
+        v.lang.includes('ru') && 
+        (v.name.toLowerCase().includes('male') || 
+         v.name.toLowerCase().includes('мужской') || 
+         v.name.toLowerCase().includes('man'))
+      );
     }
     
-    // Якщо немає ні українського, ні російського чоловічого, візьмемо будь-який чоловічий голос
+    // Якщо немає ні українського, ні російського чоловічого, шукаємо англійський чоловічий
     if (!bestVoice) {
-      bestVoice = voices.find(v => v.name.toLowerCase().includes('male') || v.name.toLowerCase().includes('man'));
+      bestVoice = voices.find(v => 
+        v.lang.includes('en') && 
+        (v.name.toLowerCase().includes('male') || 
+         v.name.toLowerCase().includes('man'))
+      );
     }
     
-    // Якщо взагалі нічого немає, візьмемо перший доступний
+    // Якщо чоловічого голосу взагалі немає, беремо будь-який
     if (!bestVoice && voices.length > 0) {
       bestVoice = voices[0];
     }
@@ -494,32 +512,109 @@ export const JarvisAssistant = React.forwardRef<
     }
   };
 
+  // Функція для форматування тексту для кращої вимови
+  const formatTextForSpeech = (text: string): string => {
+    // Заміна цифр на слова для правильної вимови
+    // Заміняємо години з хвилинами на слова
+    text = text.replace(/(\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
+      // Визначити рід слова "година" залежно від числа
+      let hoursWord = "годин";
+      if (hours === "1" || hours === "21") {
+        hoursWord = "година";
+      } else if ((hours >= "2" && hours <= "4") || (hours >= "22" && hours <= "24")) {
+        hoursWord = "години";
+      }
+      
+      // Визначити рід слова "хвилина" залежно від числа
+      let minutesWord = "хвилин";
+      const minutesNum = parseInt(minutes);
+      if (minutesNum % 10 === 1 && minutesNum % 100 !== 11) {
+        minutesWord = "хвилина";
+      } else if ([2, 3, 4].includes(minutesNum % 10) && ![12, 13, 14].includes(minutesNum % 100)) {
+        minutesWord = "хвилини";
+      }
+      
+      return `${hours} ${hoursWord} ${minutes} ${minutesWord}`;
+    });
+    
+    // Заміна чисел на слова з правильними відмінками
+    text = text.replace(/(\d+) (задач|завдан|заплан)/g, (match, number, word) => {
+      const num = parseInt(number);
+      // Визначити правильну форму слова "задача"
+      let taskWord = "задач";
+      if (num % 10 === 1 && num % 100 !== 11) {
+        taskWord = "задача";
+      } else if ([2, 3, 4].includes(num % 10) && ![12, 13, 14].includes(num % 100)) {
+        taskWord = "задачі";
+      }
+      
+      return `${number} ${taskWord}`;
+    });
+    
+    // Додаємо невеликі паузи після речень для натуральнішого звучання
+    text = text.replace(/\./g, ". <break time='500ms'/>");
+    text = text.replace(/\!/g, "! <break time='500ms'/>");
+    text = text.replace(/\?/g, "? <break time='500ms'/>");
+    
+    return text;
+  };
+
   // Перейменовуємо стару функцію speakText на speakWithBrowserTTS
   const speakWithBrowserTTS = (text: string) => {
     if (!window.speechSynthesis) {
-      console.error("Синтез мовлення не підтримується.");
+      console.error("Браузер не підтримує синтез мовлення");
       return;
     }
     
-    if (speechSynthesis.speaking) {
-      speechSynthesis.cancel();
-    }
+    // Зупиняємо всі попередні вислови
+    window.speechSynthesis.cancel();
     
-    console.log("Озвучую:", text);
-    const utterance = new SpeechSynthesisUtterance(text);
-    utterance.lang = 'uk-UA';
-    utterance.rate = 0.9;
-    utterance.pitch = 1.0;
+    // Форматуємо текст для кращої вимови
+    const formattedText = formatTextForSpeech(text);
     
+    // Створюємо новий екземпляр висловлювання
+    const utterance = new SpeechSynthesisUtterance(formattedText);
+    
+    // Встановлюємо голос
     if (selectedVoice) {
       utterance.voice = selectedVoice;
     }
     
-    utterance.onstart = () => setIsSpeaking(true);
-    utterance.onend = () => setIsSpeaking(false);
-    utterance.onerror = () => setIsSpeaking(false);
+    // Налаштування параметрів голосу
+    utterance.volume = 1;      // Гучність (0-1)
+    utterance.rate = 0.9;      // Швидкість (0.1-10)
+    utterance.pitch = 0.9;     // Висота тону (0-2)
     
-    speechSynthesis.speak(utterance);
+    // Налаштовуємо українську мову, якщо голос не український
+    if (selectedVoice && !selectedVoice.lang.includes('uk')) {
+      utterance.lang = 'uk-UA';
+    }
+    
+    // Додаємо обробники подій
+    utterance.onstart = () => {
+      console.log("Джарвіс почав говорити");
+      setIsSpeaking(true);
+      // Використовуємо наявну анімацію, яка вже є в коді (припускаємо що generateWaveform вже існує)
+      setWaveform(Array.from({ length: 10 }, () => 0.2 + Math.random() * 0.8));
+    };
+    
+    utterance.onend = () => {
+      console.log("Джарвіс закінчив говорити");
+      setIsSpeaking(false);
+      setWaveform([]);
+    };
+    
+    utterance.onerror = (event) => {
+      console.error("Помилка синтезу мовлення:", event);
+      setIsSpeaking(false);
+      setWaveform([]);
+    };
+    
+    // Зберігаємо utterance в ref для можливого зупинення
+    speechSynthesisRef.current = utterance;
+    
+    // Запускаємо синтез
+    window.speechSynthesis.speak(utterance);
   };
 
   // Оновлена функція для озвучування тексту
