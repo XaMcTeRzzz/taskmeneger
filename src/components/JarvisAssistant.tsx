@@ -527,44 +527,64 @@ export const JarvisAssistant = React.forwardRef<
     // Заміняємо години з хвилинами на слова
     text = text.replace(/(\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
       // Визначити рід слова "година" залежно від числа
-      let hoursWord = "годин";
       const hoursNum = parseInt(hours);
+      
+      // Використовуємо спеціальне форматування для коректної вимови цифр з наголосами
+      let hoursWord = "год'ин"; // явно вказуємо наголос на "и"
       if (hoursNum === 1 || hoursNum === 21) {
-        hoursWord = "година";
+        hoursWord = "год'ина";
       } else if ((hoursNum >= 2 && hoursNum <= 4) || (hoursNum >= 22 && hoursNum <= 24)) {
-        hoursWord = "години";
+        hoursWord = "год'ини";
       }
       
       // Визначити рід слова "хвилина" залежно від числа
-      let minutesWord = "хвилин";
       const minutesNum = parseInt(minutes);
+      let minutesWord = "хвил'ин"; // явно вказуємо наголос на "и"
       if (minutesNum % 10 === 1 && minutesNum % 100 !== 11) {
-        minutesWord = "хвилина";
+        minutesWord = "хвил'ина";
       } else if ([2, 3, 4].includes(minutesNum % 10) && ![12, 13, 14].includes(minutesNum % 100)) {
-        minutesWord = "хвилини";
+        minutesWord = "хвил'ини";
       }
       
-      return `${hours} ${hoursWord} ${minutes} ${minutesWord}`;
+      // Спеціальний формат для кращої вимови цифр
+      // Додаємо пробіл після кожної цифри для кращої вимови
+      const formattedHours = hours.length === 1 ? hours : hours.split('').join(' ');
+      const formattedMinutes = minutes.length === 2 ? minutes.split('').join(' ') : minutes;
+      
+      // Повертаємо відформатований час з наголосами
+      return `${formattedHours} ${hoursWord} ${formattedMinutes} ${minutesWord}`;
+    });
+    
+    // Заміна часу, коли він вказаний як "о 15:30" - форматуємо для кращої вимови
+    text = text.replace(/о (\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
+      // Для кращої вимови розділяємо цифри пробілами
+      const hoursNum = parseInt(hours);
+      let hoursText = hours.length === 1 ? hours : hours.split('').join(' ');
+      const minutesText = minutes.split('').join(' ');
+      
+      if (minutesText === "0 0") {
+        if (hoursNum === 1 || hoursNum === 21) {
+          return `о ${hoursText}-й год'ині`;
+        }
+        return `о ${hoursText}-й год'ині`;
+      }
+      
+      return `о ${hoursText} год'ині ${minutesText} хвил'ин`;
     });
     
     // Заміна чисел на слова з правильними відмінками
     text = text.replace(/(\d+) (задач|завдан|заплан)/g, (match, number, word) => {
       const num = parseInt(number);
       // Визначити правильну форму слова "задача"
-      let taskWord = "задач";
+      let taskWord = "зад'ач"; // явно вказуємо наголос
       if (num % 10 === 1 && num % 100 !== 11) {
-        taskWord = "задача";
+        taskWord = "зад'ача";
       } else if ([2, 3, 4].includes(num % 10) && ![12, 13, 14].includes(num % 100)) {
-        taskWord = "задачі";
+        taskWord = "зад'ачі";
       }
       
       return `${number} ${taskWord}`;
     });
-    
-    // Додаємо невеликі паузи після речень для натуральнішого звучання
-    text = text.replace(/\./g, ".");
-    text = text.replace(/\!/g, "!");
-    text = text.replace(/\?/g, "?");
     
     return text;
   };
