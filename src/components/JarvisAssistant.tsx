@@ -183,15 +183,6 @@ export const JarvisAssistant = React.forwardRef<
     }
     
     // Якщо немає ні українського, ні російського чоловічого, шукаємо англійський чоловічий
-    if (!bestVoice) {
-      bestVoice = voices.find(v => 
-        v.lang.includes('en') && 
-        (v.name.toLowerCase().includes('male') || 
-         v.name.toLowerCase().includes('man'))
-      );
-    }
-    
-    // Якщо чоловічого голосу взагалі немає, беремо будь-який
     if (!bestVoice && voices.length > 0) {
       bestVoice = voices[0];
     }
@@ -523,14 +514,24 @@ export const JarvisAssistant = React.forwardRef<
       return "Вибачте, я не можу прочитати цей текст, бо він схожий на програмний код.";
     }
     
+    // Видаляємо HTML-теги
+    text = text.replace(/<[^>]*>/g, ' ');
+    
+    // Замінюємо спеціальні символи на пробіли
+    text = text.replace(/[&*^%$#@!_+=|~]/g, ' ');
+    
+    // Прибираємо зайві пробіли
+    text = text.replace(/\s+/g, ' ').trim();
+    
     // Заміна цифр на слова для правильної вимови
     // Заміняємо години з хвилинами на слова
     text = text.replace(/(\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
       // Визначити рід слова "година" залежно від числа
       let hoursWord = "годин";
-      if (hours === "1" || hours === "21") {
+      const hoursNum = parseInt(hours);
+      if (hoursNum === 1 || hoursNum === 21) {
         hoursWord = "година";
-      } else if ((hours >= "2" && hours <= "4") || (hours >= "22" && hours <= "24")) {
+      } else if ((hoursNum >= 2 && hoursNum <= 4) || (hoursNum >= 22 && hoursNum <= 24)) {
         hoursWord = "години";
       }
       
@@ -561,9 +562,9 @@ export const JarvisAssistant = React.forwardRef<
     });
     
     // Додаємо невеликі паузи після речень для натуральнішого звучання
-    text = text.replace(/\./g, ". <break time='500ms'/>");
-    text = text.replace(/\!/g, "! <break time='500ms'/>");
-    text = text.replace(/\?/g, "? <break time='500ms'/>");
+    text = text.replace(/\./g, ".");
+    text = text.replace(/\!/g, "!");
+    text = text.replace(/\?/g, "?");
     
     return text;
   };
@@ -708,15 +709,25 @@ export const JarvisAssistant = React.forwardRef<
       );
 
       if (todayTasks.length > 0) {
-        let tasksText = `На сьогодні у вас ${todayTasks.length} ${todayTasks.length === 1 ? 'активна задача' : 
-          todayTasks.length < 5 ? 'активні задачі' : 'активних задач'}. `;
+        // Формуємо початкове повідомлення з правильними відмінками
+        const taskCount = todayTasks.length;
+        let taskForm = 'активних задач';
+        if (taskCount === 1) {
+          taskForm = 'активна задача';
+        } else if (taskCount >= 2 && taskCount <= 4) {
+          taskForm = 'активні задачі';
+        }
+        
+        let tasksText = `На сьогодні у вас ${taskCount} ${taskForm}. `;
 
         // Сортуємо задачі за часом
         todayTasks.sort((a, b) => a.date.getTime() - b.date.getTime());
 
+        // Спрощуємо текст, щоб Джарвіс читав тільки тему та час
         todayTasks.forEach(task => {
-          const time = new Date(task.date);
-          tasksText += `О ${formatTime(time)} ${task.title}${task.category ? `, категорія ${getCategoryLabel(task.category)}` : ''}. `;
+          const time = formatTime(new Date(task.date));
+          // Прибираємо категорію, спрощуємо повідомлення
+          tasksText += `О ${time} ${task.title}. `;
         });
 
         tasksText += "Чим ще можу допомогти?";
