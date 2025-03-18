@@ -514,6 +514,15 @@ export const JarvisAssistant = React.forwardRef<
 
   // Функція для форматування тексту для кращої вимови
   const formatTextForSpeech = (text: string): string => {
+    // Видаляємо символи коду та спеціальні символи які можуть викликати помилки
+    text = text.replace(/[{}[\]<>()\/\\`]/g, ' ');
+    text = text.replace(/\s+/g, ' '); // Заміна багатьох пробілів на один
+    
+    // Пропускаємо текст, якщо він схожий на код (містить багато спеціальних символів)
+    if (text.match(/import|export|const|function|class|interface|=>|===/g)) {
+      return "Вибачте, я не можу прочитати цей текст, бо він схожий на програмний код.";
+    }
+    
     // Заміна цифр на слова для правильної вимови
     // Заміняємо години з хвилинами на слова
     text = text.replace(/(\d{1,2}):(\d{2})/g, (match, hours, minutes) => {
