@@ -6,6 +6,7 @@ import { Task } from "@/components/TasksList";
 import { SpeechRecognition, SpeechRecognitionEvent } from "@/types/speech-recognition";
 import { formatTaskCount, formatTimeForSpeech } from "@/utils/ukranian-numerals";
 import { formatGreeting, formatTasksText } from "@/utils/siri-text-formatter";
+import { applyPronunciation, addSpeechPauses } from "@/utils/pronunciation";
 
 interface SiriAssistantProps {
   tasks: Task[];
@@ -36,6 +37,8 @@ interface Settings {
   userTitle: string;
   googleApiKey: string;
   useGoogleTTS: boolean;
+  voiceRate?: number;
+  voicePitch?: number;
 }
 
 // Дефолтні налаштування
@@ -44,7 +47,9 @@ const DEFAULT_SETTINGS: Settings = {
   userName: "",
   userTitle: "сер",
   googleApiKey: "",
-  useGoogleTTS: false
+  useGoogleTTS: false,
+  voiceRate: 1,
+  voicePitch: 1
 };
 
 // Після імпортів додамо інтерфейс для голосів
@@ -320,7 +325,7 @@ export const SiriAssistant = React.forwardRef<
           
           // Відповідаємо користувачу з налаштованим привітанням
           const greeting = getGreeting();
-          speakText(greeting);
+          speak(greeting);
           
           // Затримка перед виконанням команди мої задачі
           setTimeout(() => {
@@ -338,15 +343,15 @@ export const SiriAssistant = React.forwardRef<
             const timeToEdit = timeMatch[0];
             handleEditTaskCommand(timeToEdit);
           } else {
-            speakText("Будь ласка, вкажіть час задачі, яку хочете редагувати. Наприклад: змінити задачу на 15:00");
+            speak("Будь ласка, вкажіть час задачі, яку хочете редагувати. Наприклад: змінити задачу на 15:00");
           }
         } else if (COMMANDS.STOP.some(cmd => transcript.includes(cmd))) {
           // Команда зупинки
           stopSpeaking();
-          speakText("Зупиняю озвучування");
+          speak("Зупиняю озвучування");
         } else {
           // Якщо команда не розпізнана
-          speakText("Вибачте, я не розумію цю команду. Скажіть 'Siri' для перегляду задач або 'Редагувати' для зміни задачі.");
+          speak("Вибачте, я не розумію цю команду. Скажіть 'Siri' для перегляду задач або 'Редагувати' для зміни задачі.");
         }
       };
       
@@ -660,14 +665,21 @@ export const SiriAssistant = React.forwardRef<
   };
 
   // Оновлена функція для озвучування тексту
-  const speakText = async (text: string) => {
+  const speak = (text: string) => {
+    if (!text) return;
+    
+    // Отримуємо налаштування
     const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
     
-    if (settings.useGoogleTTS && settings.googleApiKey) {
-      await speakWithGoogleTTS(text);
-    } else {
-      speakWithBrowserTTS(text);
-    }
+    // Застосовуємо правильну вимову та паузи
+    const processedText = addSpeechPauses(applyPronunciation(text));
+    
+    const utterance = new SpeechSynthesisUtterance(processedText);
+    utterance.lang = "uk-UA";
+    utterance.rate = settings?.voiceRate || 1;
+    utterance.pitch = settings?.voicePitch || 1;
+    
+    window.speechSynthesis.speak(utterance);
   };
 
   // Функція для отримання подій з Google Calendar
@@ -745,16 +757,16 @@ export const SiriAssistant = React.forwardRef<
   const handleTasksCommand = useCallback(async () => {
     try {
       const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
-      await speakText(formatGreeting(settings));
+      await speak(formatGreeting(settings));
 
       const allTasks = getAllTasks();
       const todayTasks = getTodayTasks(allTasks);
-      await speakText(formatTasksText(todayTasks, settings));
+      await speak(formatTasksText(todayTasks, settings));
     } catch (error) {
       console.error("Помилка при обробці задач:", error);
-      await speakText("Вибачте, виникла помилка при обробці ваших задач. Чим ще можу допомогти?");
+      await speak("Вибачте, виникла помилка при обробці ваших задач. Чим ще можу допомогти?");
     }
-  }, [getAllTasks, getTodayTasks, speakText]);
+  }, [getAllTasks, getTodayTasks, speak]);
 
   // Функція для отримання перекладу категорії
   const getCategoryLabel = (category: string): string => {
@@ -834,15 +846,15 @@ export const SiriAssistant = React.forwardRef<
       });
 
       if (taskToEdit) {
-        await speakText(`Знайдено задачу на ${timeToEdit}: ${taskToEdit.title}. Що ви хочете змінити?`);
+        await speak(`Знайдено задачу на ${timeToEdit}: ${taskToEdit.title}. Що ви хочете змінити?`);
         // Тут можна додати логіку для зміни задачі через голосові команди
         // Наприклад, очікувати наступну команду з новим текстом задачі
       } else {
-        await speakText(`Вибачте, я не знайшов задачу на ${timeToEdit}. Спробуйте вказати інший час.`);
+        await speak(`Вибачте, я не знайшов задачу на ${timeToEdit}. Спробуйте вказати інший час.`);
       }
     } catch (error) {
       console.error("Помилка при редагуванні задачі:", error);
-      await speakText("Вибачте, виникла помилка при редагуванні задачі.");
+      await speak("Вибачте, виникла помилка при редагуванні задачі.");
     }
   };
 
@@ -856,7 +868,7 @@ export const SiriAssistant = React.forwardRef<
       
       // Тестове привітання
       const greeting = `${settings.greeting}${settings.userName ? ', ' + settings.userName : ''}${settings.userTitle && !settings.userName ? ', ' + settings.userTitle : ''}`;
-      speakText(`${greeting}. Налаштування збережено.`);
+      speak(`${greeting}. Налаштування збережено.`);
     };
     
     return (
