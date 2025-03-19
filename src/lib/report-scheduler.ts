@@ -14,7 +14,8 @@ import {
   wasDailyReportSentToday,
   wasWeeklyReportSentThisWeek,
   markDailyReportSent,
-  markWeeklyReportSent
+  markWeeklyReportSent,
+  loadReportHistory
 } from './report-history';
 
 // Ключ для зберігання задач в localStorage
@@ -115,13 +116,20 @@ const getTasksForWeek = (date: Date): { tasks: Task[], startDate: Date, endDate:
  */
 const shouldSendDailyReport = (settings: TelegramSettings): boolean => {
   if (!settings.enabled || !settings.reportSchedule.daily) {
+    console.log('Щоденні звіти вимкнено');
     return false;
   }
   
   const now = new Date();
   const [hours, minutes] = settings.reportSchedule.dailyTime.split(':').map(Number);
+  const currentHours = now.getHours();
+  const currentMinutes = now.getMinutes();
   
-  return now.getHours() === hours && now.getMinutes() === minutes;
+  const shouldSend = currentHours === hours && currentMinutes === minutes;
+  console.log(`Перевірка часу відправки: ${currentHours}:${currentMinutes} vs ${hours}:${minutes}`);
+  console.log(`Результат перевірки: ${shouldSend ? 'Час відправляти' : 'Ще не час'}`);
+  
+  return shouldSend;
 };
 
 /**
@@ -286,4 +294,93 @@ export const sendTestReport = async (): Promise<boolean> => {
     console.error('Помилка відправки тестового звіту:', error);
     return false;
   }
+};
+
+/**
+ * Перевіряє стан звітів та повертає діагностичну інформацію
+ */
+export const checkReportStatus = (): { 
+  settings: boolean,
+  schedule: {
+    daily: boolean,
+    dailyTime: string,
+    weekly: boolean,
+    weeklyDay: number,
+    weeklyTime: string
+  },
+  lastSent: {
+    daily?: string,
+    weekly?: string
+  },
+  nextScheduled: {
+    daily?: string,
+    weekly?: string
+  },
+  errors: string[]
+} => {
+  const errors: string[] = [];
+  const settings = loadTelegramSettings();
+  const history = loadReportHistory();
+  const now = new Date();
+
+  // Перевіряємо базові налаштування
+  if (!settings.enabled) {
+    errors.push('Telegram сповіщення вимкнені');
+  }
+  if (!settings.botToken) {
+    errors.push('Не налаштовано токен бота');
+  }
+  if (!settings.chatId) {
+    errors.push('Не налаштовано ID чату');
+  }
+
+  // Розраховуємо наступний запланований час
+  let nextDaily: string | undefined;
+  let nextWeekly: string | undefined;
+
+  if (settings.reportSchedule.daily) {
+    const [hours, minutes] = settings.reportSchedule.dailyTime.split(':').map(Number);
+    const nextDate = new Date(now);
+    nextDate.setHours(hours, minutes, 0, 0);
+    if (nextDate <= now) {
+      nextDate.setDate(nextDate.getDate() + 1);
+    }
+    nextDaily = nextDate.toLocaleString('uk-UA');
+  }
+
+  if (settings.reportSchedule.weekly) {
+    const [hours, minutes] = settings.reportSchedule.weeklyTime.split(':').map(Number);
+    const nextDate = new Date(now);
+    nextDate.setHours(hours, minutes, 0, 0);
+    
+    const currentDay = now.getDay();
+    const targetDay = settings.reportSchedule.weeklyDay;
+    const daysUntilTarget = (targetDay + 7 - currentDay) % 7;
+    
+    nextDate.setDate(nextDate.getDate() + daysUntilTarget);
+    if (nextDate <= now) {
+      nextDate.setDate(nextDate.getDate() + 7);
+    }
+    nextWeekly = nextDate.toLocaleString('uk-UA');
+  }
+
+  return {
+    settings: settings.enabled,
+    schedule: {
+      daily: settings.reportSchedule.daily,
+      dailyTime: settings.reportSchedule.dailyTime,
+      weekly: settings.reportSchedule.weekly,
+      weeklyDay: settings.reportSchedule.weeklyDay,
+      weeklyTime: settings.reportSchedule.weeklyTime
+    },
+    lastSent: {
+      daily: history.lastDailyReport?.date,
+      weekly: history.lastWeeklyReport?.date
+    },
+    nextScheduled: {
+      daily: nextDaily,
+      weekly: nextWeekly
+    },
+    errors
+  };
 }; 

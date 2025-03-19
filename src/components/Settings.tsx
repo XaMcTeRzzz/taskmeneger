@@ -12,7 +12,7 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter }
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TelegramSettings, loadTelegramSettings, saveTelegramSettings, validateBotToken, sendTestReport } from "@/lib/telegram-service";
-import { initReportScheduler } from "@/lib/report-scheduler";
+import { initReportScheduler, checkReportStatus } from "@/lib/report-scheduler";
 
 interface SettingsFormValues {
   telegramUsername: string;
@@ -80,6 +80,9 @@ export function Settings() {
   const [isTesting, setIsTesting] = useState(false);
   const [isValidatingToken, setIsValidatingToken] = useState(false);
   const [isTokenValid, setIsTokenValid] = useState<boolean | null>(null);
+  
+  // Додаємо стан для перевірки стану звітів
+  const [reportStatus, setReportStatus] = useState<any>(null);
   
   // Initialize form with values from localStorage
   const form = useForm<SettingsFormValues>({
@@ -392,6 +395,12 @@ export function Settings() {
     }
   };
 
+  // Обробник перевірки стану звітів
+  const handleCheckReportStatus = () => {
+    const status = checkReportStatus();
+    setReportStatus(status);
+  };
+
   // Оновлюємо функцію renderSiriSettings, щоб додати функціонал завантаження API ключа
   const renderSiriSettings = () => (
     <Card className="mb-6">
@@ -684,112 +693,6 @@ export function Settings() {
           </CardContent>
         </Card>
 
-        {/* Налаштування Telegram */}
-        <Card className="w-full">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-lg sm:text-xl">Налаштування Telegram</CardTitle>
-            <CardDescription className="text-sm">Налаштування Telegram бота для отримання звітів</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4">
-            <div className="flex flex-col space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Активувати бота</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Увімкнути відправку звітів через Telegram
-                  </div>
-                </div>
-                <Switch
-                  checked={telegramSettings.enabled}
-                  onCheckedChange={(checked) => {
-                    setTelegramSettings({ ...telegramSettings, enabled: checked });
-                  }}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Токен бота</Label>
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <div className="flex-1">
-                    <Input
-                      type="password"
-                      placeholder="Введіть токен бота"
-                      value={telegramSettings.botToken || ""}
-                      onChange={(e) => {
-                        setTelegramSettings({
-                          ...telegramSettings,
-                          botToken: e.target.value,
-                        });
-                      }}
-                    />
-                  </div>
-                  <Button
-                    variant="outline"
-                    size="icon"
-                    onClick={handleValidateToken}
-                    disabled={isValidatingToken || !telegramSettings.botToken}
-                    className="shrink-0"
-                  >
-                    {isValidatingToken ? (
-                      <AlertCircle className="h-4 w-4 animate-spin" />
-                    ) : isTokenValid === true ? (
-                      <CheckIcon className="h-4 w-4 text-green-500" />
-                    ) : (
-                      <BotIcon className="h-4 w-4" />
-                    )}
-                  </Button>
-                </div>
-              </div>
-
-              <div className="space-y-2">
-                <Label>ID чату</Label>
-                <Input
-                  type="text"
-                  placeholder="Введіть ID чату"
-                  value={telegramSettings.chatId || ""}
-                  onChange={(e) => {
-                    setTelegramSettings({
-                      ...telegramSettings,
-                      chatId: e.target.value,
-                    });
-                  }}
-                />
-              </div>
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  variant="outline"
-                  onClick={handleSendTestReport}
-                  disabled={isTesting || !telegramSettings.enabled || !telegramSettings.botToken || !telegramSettings.chatId}
-                  className="w-full sm:flex-1"
-                >
-                  {isTesting ? (
-                    <AlertCircle className="h-4 w-4 animate-spin mr-2" />
-                  ) : (
-                    <Send className="h-4 w-4 mr-2" />
-                  )}
-                  Надіслати тест
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    saveTelegramSettings(telegramSettings);
-                    toast({
-                      title: "Налаштування збережено",
-                      description: "Налаштування Telegram успішно оновлено",
-                    });
-                  }}
-                  className="w-full sm:flex-1"
-                >
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  Зберегти
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
         {/* Telegram Bot Settings */}
         <Card className="glass-card">
           <CardHeader>
@@ -935,425 +838,86 @@ export function Settings() {
                       )}
                     </div>
                   </div>
+
+                  <div className="flex gap-2 mt-4">
+                    <Button
+                      variant="outline"
+                      onClick={handleSendTestReport}
+                      disabled={isTesting || !telegramSettings.enabled || !telegramSettings.botToken || !telegramSettings.chatId}
+                      className="flex-1"
+                    >
+                      {isTesting ? (
+                        <AlertCircle className="h-4 w-4 animate-spin mr-2" />
+                      ) : (
+                        <Send className="h-4 w-4 mr-2" />
+                      )}
+                      Надіслати тест
+                    </Button>
+                    
+                    <Button
+                      variant="outline"
+                      onClick={handleCheckReportStatus}
+                      className="flex-1"
+                    >
+                      <Clock className="h-4 w-4 mr-2" />
+                      Перевірити стан
+                    </Button>
+                  </div>
+
+                  {reportStatus && (
+                    <div className="space-y-2 p-4 border rounded-lg mt-4">
+                      <h3 className="font-medium">Діагностика звітів:</h3>
+                      
+                      <div className="space-y-1 text-sm">
+                        <p>
+                          <strong>Статус Telegram:</strong> 
+                          {reportStatus.settings ? '✅ Увімкнено' : '❌ Вимкнено'}
+                        </p>
+                        
+                        <div className="space-y-1">
+                          <p><strong>Щоденний звіт:</strong></p>
+                          <ul className="list-disc list-inside pl-4">
+                            <li>Статус: {reportStatus.schedule.daily ? '✅ Увімкнено' : '❌ Вимкнено'}</li>
+                            <li>Час відправки: {reportStatus.schedule.dailyTime}</li>
+                            <li>Останній звіт: {reportStatus.lastSent.daily || 'Ще не відправлявся'}</li>
+                            <li>Наступний звіт: {reportStatus.nextScheduled.daily || 'Не заплановано'}</li>
+                          </ul>
+                        </div>
+
+                        <div className="space-y-1">
+                          <p><strong>Щотижневий звіт:</strong></p>
+                          <ul className="list-disc list-inside pl-4">
+                            <li>Статус: {reportStatus.schedule.weekly ? '✅ Увімкнено' : '❌ Вимкнено'}</li>
+                            <li>День відправки: {
+                              ['Неділя', 'Понеділок', 'Вівторок', 'Середа', 'Четвер', 'П\'ятниця', 'Субота'][reportStatus.schedule.weeklyDay]
+                            }</li>
+                            <li>Час відправки: {reportStatus.schedule.weeklyTime}</li>
+                            <li>Останній звіт: {reportStatus.lastSent.weekly || 'Ще не відправлявся'}</li>
+                            <li>Наступний звіт: {reportStatus.nextScheduled.weekly || 'Не заплановано'}</li>
+                          </ul>
+                        </div>
+
+                        {reportStatus.errors.length > 0 && (
+                          <div className="mt-4">
+                            <p><strong>⚠️ Виявлені проблеми:</strong></p>
+                            <ul className="list-disc list-inside pl-4">
+                              {reportStatus.errors.map((error: string, index: number) => (
+                                <li key={index} className="text-red-500">{error}</li>
+                              ))}
+                            </ul>
+                          </div>
+                        )}
+                      </div>
+                    </div>
+                  )}
                 </div>
               </>
             )}
           </CardContent>
         </Card>
 
-        <Form {...form}>
-          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-            {/* Telegram Integration */}
-            <div className="glass-card p-4 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <h3 className="text-base font-medium">Telegram інтеграція</h3>
-                  <p className="text-sm text-muted-foreground">Отримуйте сповіщення через Telegram</p>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="telegramBotEnabled"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch 
-                          checked={field.value} 
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("telegramBotEnabled") && (
-                <div className="space-y-4 pt-2 border-t border-border/50">
-                  <FormField
-                    control={form.control}
-                    name="telegramUsername"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Ваш Telegram username</FormLabel>
-                        <FormControl>
-                          <div className="flex items-center space-x-2">
-                            <span className="text-muted-foreground">@</span>
-                            <Input placeholder="username" {...field} />
-                          </div>
-                        </FormControl>
-                        <FormDescription>
-                          Введіть ваш username без символу @
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-
-                  <FormField
-                    control={form.control}
-                    name="welcomeMessage"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Привітальне повідомлення</FormLabel>
-                        <FormControl>
-                          <Textarea 
-                            placeholder="Введіть текст, який бот надішле вам після з'єднання" 
-                            className="resize-none" 
-                            {...field} 
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Email Integration */}
-            <div className="glass-card p-4 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <h3 className="text-base font-medium">Email сповіщення</h3>
-                  <p className="text-sm text-muted-foreground">Отримуйте нагадування на пошту</p>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="emailEnabled"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch 
-                          checked={field.value} 
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("emailEnabled") && (
-                <div className="space-y-4 pt-2 border-t border-border/50">
-                  <FormField
-                    control={form.control}
-                    name="emailAddress"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Email адреса</FormLabel>
-                        <FormControl>
-                          <Input 
-                            type="email" 
-                            placeholder="your@email.com" 
-                            {...field} 
-                          />
-                        </FormControl>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
-
-            {/* Google Calendar Integration */}
-            <div className="glass-card p-4 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <h3 className="text-base font-medium">Google Calendar</h3>
-                  <p className="text-sm text-muted-foreground">Синхронізуйте задачі з Google Calendar</p>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="googleCalendarEnabled"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch 
-                          checked={field.value} 
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("googleCalendarEnabled") && (
-                <div className="space-y-4 pt-2 border-t border-border/50">
-                  <FormField
-                    control={form.control}
-                    name="googleCalendarId"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>ID Google Calendar</FormLabel>
-                        <FormControl>
-                          <Input 
-                            placeholder="calendar_id@group.calendar.google.com" 
-                            {...field} 
-                          />
-                        </FormControl>
-                        <FormDescription>
-                          Знайдіть ID календаря в налаштуваннях Google Calendar
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-                  <Button variant="outline" className="w-full" type="button">
-                    <CalendarIcon className="mr-2 h-4 w-4" />
-                    Підключити Google Calendar
-                  </Button>
-                </div>
-              )}
-            </div>
-
-            {/* Reminders */}
-            <div className="glass-card p-4 rounded-xl space-y-4">
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <h3 className="text-base font-medium">Нагадування</h3>
-                  <p className="text-sm text-muted-foreground">Налаштування сповіщень про задачі</p>
-                </div>
-                <FormField
-                  control={form.control}
-                  name="reminderEnabled"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormControl>
-                        <Switch 
-                          checked={field.value} 
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-              </div>
-
-              {form.watch("reminderEnabled") && (
-                <div className="space-y-4 pt-2 border-t border-border/50">
-                  <FormField
-                    control={form.control}
-                    name="defaultReminderTime"
-                    render={({ field }) => (
-                      <FormItem>
-                        <FormLabel>Час нагадування за замовчуванням</FormLabel>
-                        <FormControl>
-                          <Input type="time" {...field} />
-                        </FormControl>
-                        <FormDescription>
-                          Час, коли ви бажаєте отримувати нагадування
-                        </FormDescription>
-                      </FormItem>
-                    )}
-                  />
-                </div>
-              )}
-            </div>
-
-            <Button type="submit" className="w-full" disabled={isSaving}>
-              {isSaving ? (
-                <>
-                  <SaveIcon className="mr-2 h-4 w-4 animate-spin" />
-                  Зберігаємо...
-                </>
-              ) : (
-                <>
-                  <SaveIcon className="mr-2 h-4 w-4" />
-                  Зберегти налаштування
-                </>
-              )}
-            </Button>
-          </form>
-        </Form>
-
         {/* Налаштування Siri */}
-        <Card className="w-full">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-lg sm:text-xl">Налаштування Siri</CardTitle>
-            <CardDescription className="text-sm">Налаштування голосового асистента</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4">
-            <div className="flex flex-col space-y-4">
-              <div className="space-y-2">
-                <Label>Привітання</Label>
-                <Input
-                  placeholder="Введіть текст привітання"
-                  value={siriSettings.greeting}
-                  onChange={(e) =>
-                    setSiriSettings({ ...siriSettings, greeting: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Ім'я користувача</Label>
-                <Input
-                  placeholder="Введіть ваше ім'я"
-                  value={siriSettings.userName}
-                  onChange={(e) =>
-                    setSiriSettings({ ...siriSettings, userName: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="space-y-2">
-                <Label>Звертання</Label>
-                <Input
-                  placeholder="Як до вас звертатися"
-                  value={siriSettings.userTitle}
-                  onChange={(e) =>
-                    setSiriSettings({ ...siriSettings, userTitle: e.target.value })
-                  }
-                />
-              </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Google Cloud TTS</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Використовувати Google Cloud Text-to-Speech
-                  </div>
-                </div>
-                <Switch
-                  checked={siriSettings.useCloudTTS}
-                  onCheckedChange={(checked) =>
-                    setSiriSettings({ ...siriSettings, useCloudTTS: checked })
-                  }
-                />
-              </div>
-
-              {siriSettings.useCloudTTS && (
-                <div className="space-y-2">
-                  <Label>API ключ</Label>
-                  <div className="flex flex-col sm:flex-row gap-2">
-                    <div className="flex-1">
-                      <Input
-                        type="file"
-                        accept=".json"
-                        ref={fileInputRef}
-                        onChange={handleFileUpload}
-                        className="hidden"
-                      />
-                      <div className="flex flex-col sm:flex-row gap-2">
-                        <Input
-                          readOnly
-                          value={apiKeyFilename || "Файл не обрано"}
-                          className="flex-1"
-                        />
-                        <Button
-                          variant="outline"
-                          onClick={() => fileInputRef.current?.click()}
-                          className="shrink-0"
-                        >
-                          <UploadCloud className="h-4 w-4 mr-2" />
-                          Обрати файл
-                        </Button>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              )}
-
-              <div className="flex flex-col sm:flex-row gap-2">
-                <Button
-                  variant="outline"
-                  onClick={testGreeting}
-                  disabled={isSpeaking}
-                  className="w-full sm:flex-1"
-                >
-                  <Mic className="h-4 w-4 mr-2" />
-                  Тест привітання
-                </Button>
-                
-                <Button
-                  variant="outline"
-                  onClick={() => {
-                    localStorage.setItem(SIRI_SETTINGS_KEY, JSON.stringify(siriSettings));
-                    toast({
-                      title: "Налаштування збережено",
-                      description: "Налаштування Siri успішно оновлено",
-                    });
-                  }}
-                  className="w-full sm:flex-1"
-                >
-                  <SaveIcon className="h-4 w-4 mr-2" />
-                  Зберегти
-                </Button>
-              </div>
-            </div>
-          </CardContent>
-        </Card>
-
-        {/* Налаштування сповіщень */}
-        <Card className="w-full">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-lg sm:text-xl">Налаштування сповіщень</CardTitle>
-            <CardDescription className="text-sm">Налаштування часу та типу сповіщень</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4">
-            <Form {...form}>
-              <div className="space-y-4">
-                <FormField
-                  control={form.control}
-                  name="reminderEnabled"
-                  render={({ field }) => (
-                    <FormItem className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <FormLabel>Нагадування</FormLabel>
-                        <FormDescription>
-                          Отримувати нагадування про задачі
-                        </FormDescription>
-                      </div>
-                      <FormControl>
-                        <Switch
-                          checked={field.value}
-                          onCheckedChange={field.onChange}
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="defaultReminderTime"
-                  render={({ field }) => (
-                    <FormItem className="space-y-2">
-                      <FormLabel>Час нагадування</FormLabel>
-                      <FormDescription>
-                        За скільки хвилин нагадувати про задачу
-                      </FormDescription>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          {...field}
-                          min="1"
-                          max="1440"
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
-                />
-
-                <div className="flex flex-col sm:flex-row gap-2">
-                  <Button
-                    variant="outline"
-                    onClick={() => {
-                      // Зберігаємо налаштування
-                      const values = form.getValues();
-                      localStorage.setItem('notification_settings', JSON.stringify(values));
-                      toast({
-                        title: "Налаштування збережено",
-                        description: "Налаштування сповіщень успішно оновлено",
-                      });
-                    }}
-                    className="w-full sm:flex-1"
-                  >
-                    <SaveIcon className="h-4 w-4 mr-2" />
-                    Зберегти
-                  </Button>
-                </div>
-              </div>
-            </Form>
-          </CardContent>
-        </Card>
+        {renderSiriSettings()}
 
         {/* Видалення даних */}
         <Card className="w-full border-destructive/50">
