@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Switch } from "@/components/ui/switch";
@@ -7,20 +7,12 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
-import { BotIcon, CheckIcon, SaveIcon, CalendarIcon, MailIcon, BellIcon, Moon, Sun, BellRing, Languages, Trash2, Mic, Clock, Send, AlertCircle } from "lucide-react";
+import { BotIcon, CheckIcon, SaveIcon, CalendarIcon, MailIcon, BellIcon, Moon, Sun, BellRing, Languages, Trash2, Mic, Clock, Send, AlertCircle, UploadCloud, FileKey } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { TelegramSettings, loadTelegramSettings, saveTelegramSettings, validateBotToken, sendTestReport } from "@/lib/telegram-service";
 import { initReportScheduler } from "@/lib/report-scheduler";
-
-// Додаємо імпорт для SpeechSynthesisUtterance, щоб протестувати звучання привітання
-declare global {
-  interface Window {
-    speechSynthesis: SpeechSynthesis;
-    SpeechSynthesisUtterance: typeof SpeechSynthesisUtterance;
-  }
-}
 
 interface SettingsFormValues {
   telegramUsername: string;
@@ -41,6 +33,8 @@ interface SiriSettings {
   userTitle: string;
   useGoogleTTS: boolean;
   googleApiKey: string;
+  useCloudTTS: boolean; // Використовувати Google Cloud TTS API замість Web Speech API
+  apiKeyFile: string; // Назва файлу з ключем API
   voiceLanguage: string;
   voiceName: string;
   voiceRate: number;
@@ -49,6 +43,7 @@ interface SiriSettings {
 
 // Константа для ключа localStorage
 const SIRI_SETTINGS_KEY = "siri_settings";
+const GOOGLE_API_KEY_KEY = "google_tts_api_key"; // Ключ для зберігання API ключа
 
 // Оновлюємо дефолтні налаштування
 const DEFAULT_SIRI_SETTINGS: SiriSettings = {
@@ -57,6 +52,8 @@ const DEFAULT_SIRI_SETTINGS: SiriSettings = {
   userTitle: "",
   useGoogleTTS: false,
   googleApiKey: "",
+  useCloudTTS: false,
+  apiKeyFile: "",
   voiceLanguage: "uk-UA",
   voiceName: "",
   voiceRate: 1,
@@ -73,6 +70,10 @@ export function Settings() {
   const [siriSettings, setSiriSettings] = useState<SiriSettings>(DEFAULT_SIRI_SETTINGS);
   // Стан для відтворення тестового привітання
   const [isSpeaking, setIsSpeaking] = useState(false);
+  // Стан для файлу API ключа
+  const [apiKeyFilename, setApiKeyFilename] = useState<string>("");
+  const [apiKeyContent, setApiKeyContent] = useState<string>("");
+  const fileInputRef = useRef<HTMLInputElement>(null);
   
   // Додаємо стан для налаштувань Telegram
   const [telegramSettings, setTelegramSettings] = useState<TelegramSettings>(loadTelegramSettings());
@@ -114,6 +115,69 @@ export function Settings() {
     initReportScheduler();
   }, [form]);
 
+  // Функція для завантаження ключа API з файлу
+  const handleFileUpload = (event: React.ChangeEvent<HTMLInputElement>) => {
+    const file = event.target.files?.[0];
+    if (!file) return;
+    
+    // Оновлюємо назву файлу
+    setApiKeyFilename(file.name);
+    
+    // Читаємо вміст файлу
+    const reader = new FileReader();
+    reader.onload = (e) => {
+      try {
+        const content = e.target?.result as string;
+        // Перевіряємо, чи це валідний JSON
+        JSON.parse(content);
+        
+        // Зберігаємо вміст файлу
+        setApiKeyContent(content);
+        
+        // Зберігаємо API ключ в localStorage
+        localStorage.setItem(GOOGLE_API_KEY_KEY, content);
+        
+        // Оновлюємо налаштування
+        handleSiriSettingsChange("apiKeyFile", file.name);
+        handleSiriSettingsChange("useCloudTTS", true);
+        
+        toast({
+          title: "API ключ завантажено",
+          description: `Файл ${file.name} успішно завантажено`,
+        });
+      } catch (error) {
+        console.error("Помилка при зчитуванні файлу API ключа:", error);
+        toast({
+          title: "Помилка завантаження",
+          description: "Файл не є валідним JSON файлом ключа API",
+          variant: "destructive",
+        });
+      }
+    };
+    reader.readAsText(file);
+  };
+
+  // Функція для видалення ключа API
+  const handleRemoveApiKey = () => {
+    localStorage.removeItem(GOOGLE_API_KEY_KEY);
+    setApiKeyFilename("");
+    setApiKeyContent("");
+    
+    // Оновлюємо налаштування
+    handleSiriSettingsChange("apiKeyFile", "");
+    handleSiriSettingsChange("useCloudTTS", false);
+    
+    // Очищаємо input
+    if (fileInputRef.current) {
+      fileInputRef.current.value = "";
+    }
+    
+    toast({
+      title: "API ключ видалено",
+      description: "Ключ API успішно видалено",
+    });
+  };
+
   // Функція для завантаження налаштувань Siri AI
   const loadSiriSettings = () => {
     try {
@@ -121,30 +185,22 @@ export function Settings() {
       if (savedSettings) {
         const parsedSettings = JSON.parse(savedSettings) as SiriSettings;
         setSiriSettings(parsedSettings);
+        
+        // Якщо є збережений файл ключа, встановлюємо його назву
+        if (parsedSettings.apiKeyFile) {
+          setApiKeyFilename(parsedSettings.apiKeyFile);
+          
+          // Перевіряємо, чи є збережений ключ в localStorage
+          const savedApiKey = localStorage.getItem(GOOGLE_API_KEY_KEY);
+          if (savedApiKey) {
+            setApiKeyContent(savedApiKey);
+          }
+        }
+        
         console.log("Завантажено налаштування Siri AI:", parsedSettings);
       }
     } catch (error) {
       console.error("Помилка при завантаженні налаштувань Siri AI:", error);
-    }
-  };
-
-  // Функція для збереження налаштувань Siri AI
-  const saveSiriSettings = (settings: SiriSettings) => {
-    try {
-      localStorage.setItem(SIRI_SETTINGS_KEY, JSON.stringify(settings));
-      setSiriSettings(settings);
-      console.log("Збережено налаштування Siri AI:", settings);
-      toast({
-        title: "Налаштування Siri AI збережено",
-        description: "Ваші налаштування успішно збережено",
-      });
-    } catch (error) {
-      console.error("Помилка при збереженні налаштувань Siri AI:", error);
-      toast({
-        title: "Помилка",
-        description: "Не вдалося зберегти налаштування Siri AI",
-        variant: "destructive",
-      });
     }
   };
 
@@ -354,68 +410,226 @@ export function Settings() {
     }
   };
 
+  // Оновлюємо функцію renderSiriSettings, щоб додати функціонал завантаження API ключа
+  const renderSiriSettings = () => (
+    <Card className="mb-6">
+      <CardHeader>
+        <CardTitle className="flex items-center"><Mic className="mr-2" size={20} />Налаштування Siri AI</CardTitle>
+        <CardDescription>Налаштуйте голосового асистента для вашого додатка</CardDescription>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        <div className="space-y-4">
+          <div>
+            <Label htmlFor="greeting">Привітання</Label>
+            <Input 
+              id="greeting" 
+              placeholder="Привіт" 
+              value={siriSettings.greeting}
+              onChange={(e) => handleSiriSettingsChange("greeting", e.target.value)}
+            />
+          </div>
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="userName">Ім'я користувача</Label>
+              <Input 
+                id="userName" 
+                placeholder="Іван" 
+                value={siriSettings.userName}
+                onChange={(e) => handleSiriSettingsChange("userName", e.target.value)}
+              />
+            </div>
+            <div>
+              <Label htmlFor="userTitle">Звертання</Label>
+              <Input 
+                id="userTitle" 
+                placeholder="пане" 
+                value={siriSettings.userTitle}
+                onChange={(e) => handleSiriSettingsChange("userTitle", e.target.value)}
+              />
+            </div>
+          </div>
+          
+          <Separator />
+          
+          <div className="flex items-center justify-between">
+            <div className="space-y-0.5">
+              <Label htmlFor="useGoogleTTS">Використовувати TTS</Label>
+              <div className="text-sm text-muted-foreground">
+                Увімкнути Google Text-to-Speech для озвучування
+              </div>
+            </div>
+            <Switch 
+              id="useGoogleTTS"
+              checked={siriSettings.useGoogleTTS}
+              onCheckedChange={(checked) => handleSiriSettingsChange("useGoogleTTS", checked)}
+            />
+          </div>
+          
+          <Separator />
+          
+          <div className="space-y-4">
+            <div className="flex flex-col space-y-2">
+              <Label>Google Cloud TTS API Key</Label>
+              <div className="text-sm text-muted-foreground mb-2">
+                Завантажте файл з ключем API для використання Google Cloud TTS API
+              </div>
+              
+              <div className="flex items-center gap-2">
+                <Input
+                  ref={fileInputRef}
+                  type="file"
+                  accept=".json"
+                  className="hidden"
+                  onChange={handleFileUpload}
+                  id="api-key-file"
+                />
+                <Button
+                  variant="outline"
+                  onClick={() => fileInputRef.current?.click()}
+                  className="flex items-center"
+                >
+                  <UploadCloud className="mr-2" size={16} />
+                  Завантажити ключ API
+                </Button>
+                
+                {apiKeyFilename && (
+                  <div className="flex items-center">
+                    <span className="text-sm text-muted-foreground mr-2">
+                      <FileKey className="inline mr-1" size={16} />
+                      {apiKeyFilename}
+                    </span>
+                    <Button 
+                      size="sm"
+                      variant="ghost" 
+                      onClick={handleRemoveApiKey}
+                      title="Видалити ключ"
+                    >
+                      <Trash2 size={16} />
+                    </Button>
+                  </div>
+                )}
+              </div>
+              
+              {apiKeyContent && (
+                <div className="flex items-center justify-between">
+                  <div className="space-y-0.5">
+                    <Label htmlFor="useCloudTTS">Використовувати Cloud TTS API</Label>
+                    <div className="text-sm text-muted-foreground">
+                      Використовувати розширені можливості Google Cloud TTS
+                    </div>
+                  </div>
+                  <Switch 
+                    id="useCloudTTS"
+                    checked={siriSettings.useCloudTTS}
+                    onCheckedChange={(checked) => handleSiriSettingsChange("useCloudTTS", checked)}
+                  />
+                </div>
+              )}
+            </div>
+          </div>
+          
+          <Separator />
+          
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <Label htmlFor="voiceLanguage">Мова голосу</Label>
+              <Select 
+                value={siriSettings.voiceLanguage}
+                onValueChange={(value) => handleSiriSettingsChange("voiceLanguage", value)}
+              >
+                <SelectTrigger>
+                  <SelectValue placeholder="Оберіть мову" />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uk-UA">Українська</SelectItem>
+                  <SelectItem value="en-US">Англійська (США)</SelectItem>
+                  <SelectItem value="ru-RU">Російська</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+            
+            <div>
+              <Label htmlFor="voiceRate">Швидкість</Label>
+              <div className="flex items-center">
+                <Input
+                  id="voiceRate"
+                  type="range"
+                  min="0.5"
+                  max="2"
+                  step="0.1"
+                  value={siriSettings.voiceRate}
+                  onChange={(e) => handleSiriSettingsChange("voiceRate", parseFloat(e.target.value))}
+                  className="flex-1"
+                />
+                <span className="ml-2 text-sm">{siriSettings.voiceRate}x</span>
+              </div>
+            </div>
+          </div>
+          
+          <div>
+            <Label htmlFor="voicePitch">Висота голосу</Label>
+            <div className="flex items-center">
+              <Input
+                id="voicePitch"
+                type="range"
+                min="0.5"
+                max="2"
+                step="0.1"
+                value={siriSettings.voicePitch}
+                onChange={(e) => handleSiriSettingsChange("voicePitch", parseFloat(e.target.value))}
+                className="flex-1"
+              />
+              <span className="ml-2 text-sm">{siriSettings.voicePitch}</span>
+            </div>
+          </div>
+        </div>
+      </CardContent>
+      <CardFooter className="flex justify-between">
+        <Button 
+          variant="outline" 
+          onClick={testGreeting}
+          disabled={isSpeaking}
+        >
+          <Mic className="mr-2" size={16} />
+          Тестувати голос
+        </Button>
+        <Button 
+          onClick={() => saveSiriSettings(siriSettings)}
+          disabled={isSaving}
+        >
+          <SaveIcon className="mr-2" size={16} />
+          Зберегти налаштування
+        </Button>
+      </CardFooter>
+    </Card>
+  );
+
+  // Додаємо функцію для збереження налаштувань Siri AI
+  const saveSiriSettings = (settings: SiriSettings) => {
+    try {
+      localStorage.setItem(SIRI_SETTINGS_KEY, JSON.stringify(settings));
+      setSiriSettings(settings);
+      console.log("Збережено налаштування Siri AI:", settings);
+      toast({
+        title: "Налаштування Siri AI збережено",
+        description: "Ваші налаштування успішно збережено",
+      });
+    } catch (error) {
+      console.error("Помилка при збереженні налаштувань Siri AI:", error);
+      toast({
+        title: "Помилка",
+        description: "Не вдалося зберегти налаштування Siri AI",
+        variant: "destructive",
+      });
+    }
+  };
+
   return (
     <div className="space-y-6 animate-slide-up">
       <h2 className="text-xl font-semibold text-primary">Налаштування</h2>
       
-      {/* Додаємо картку з налаштуваннями Siri AI */}
-      <Card>
-        <CardHeader>
-          <CardTitle>
-            Голосовий асистент "Siri AI"
-          </CardTitle>
-          <CardDescription>
-            Налаштуйте голосового асистента під себе
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          {/* Форма налаштувань */}
-          <div className="space-y-4">
-            <div className="space-y-2">
-              <Label htmlFor="greeting">Привітання</Label>
-              <Input
-                id="greeting"
-                value={siriSettings.greeting}
-                onChange={(e) => handleSiriSettingsChange("greeting", e.target.value)}
-                placeholder="Наприклад: Привіт"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="userName">Ваше ім'я</Label>
-              <Input
-                id="userName"
-                value={siriSettings.userName}
-                onChange={(e) => handleSiriSettingsChange("userName", e.target.value)}
-                placeholder="Як до вас звертатися"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label htmlFor="userTitle">Звертання</Label>
-              <Input
-                id="userTitle"
-                value={siriSettings.userTitle}
-                onChange={(e) => handleSiriSettingsChange("userTitle", e.target.value)}
-                placeholder="Наприклад: пане"
-              />
-            </div>
-            
-            <div className="space-y-2">
-              <Label>Приклад привітання</Label>
-              <p className="text-sm">"{siriSettings.greeting}. Я Siri AI, ваш особистий асистент.{siriSettings.userName ? ` ${siriSettings.userName},` : ''} {siriSettings.userTitle}. Давайте подивимося на ваші задачі на сьогодні."</p>
-              <Button onClick={testGreeting} variant="outline" size="sm">
-                Тест привітання
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-        <CardFooter>
-          <Button onClick={() => saveSiriSettings(siriSettings)}>
-            Зберегти налаштування
-          </Button>
-        </CardFooter>
-      </Card>
+      {renderSiriSettings()}
       
       <Card className="glass-card">
         <CardHeader>
