@@ -608,493 +608,771 @@ export function Settings() {
   };
 
   return (
-    <div className="space-y-6 animate-slide-up">
-      <h2 className="text-xl font-semibold text-primary">Налаштування</h2>
-      
-      {renderSiriSettings()}
-      
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Зовнішній вигляд</CardTitle>
-          <CardDescription>Змініть тему додатку</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              {theme === "dark" ? <Moon className="h-5 w-5" /> : <Sun className="h-5 w-5" />}
-              <span>Тема</span>
-            </div>
-            <div className="flex items-center gap-2">
-              <Button 
-                variant={theme === "light" ? "default" : "outline"} 
-                size="sm"
-                onClick={() => handleThemeChange("light")}
-                className="h-8 w-8 p-0 rounded-full"
-              >
-                <Sun className="h-4 w-4" />
-                <span className="sr-only">Світла</span>
-              </Button>
-              <Button 
-                variant={theme === "dark" ? "default" : "outline"} 
-                size="sm"
-                onClick={() => handleThemeChange("dark")}
-                className="h-8 w-8 p-0 rounded-full"
-              >
-                <Moon className="h-4 w-4" />
-                <span className="sr-only">Темна</span>
-              </Button>
-            </div>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Сповіщення</CardTitle>
-          <CardDescription>Налаштування сповіщень</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <BellRing className="h-5 w-5" />
-              <Label htmlFor="notifications">Сповіщення про задачі</Label>
-            </div>
-            <Switch 
-              id="notifications" 
-              checked={notifications} 
-              onCheckedChange={setNotifications} 
-            />
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle>Мова</CardTitle>
-          <CardDescription>Оберіть мову інтерфейсу</CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Languages className="h-5 w-5" />
-              <span>Мова</span>
-            </div>
-            <select 
-              value={language}
-              onChange={(e) => setLanguage(e.target.value)}
-              className="bg-background border border-input rounded-md px-3 py-1"
-            >
-              <option value="uk">Українська</option>
-              <option value="en">English</option>
-            </select>
-          </div>
-        </CardContent>
-      </Card>
-      
-      <Card className="glass-card border-destructive/50">
-        <CardHeader>
-          <CardTitle className="text-destructive">Дані</CardTitle>
-          <CardDescription>Керування даними додатку</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Button 
-            variant="destructive" 
-            size="sm"
-            onClick={handleClearData}
-            className="w-full flex items-center gap-2"
-          >
-            <Trash2 className="h-4 w-4" />
-            <span>Видалити всі задачі</span>
-          </Button>
-        </CardContent>
-      </Card>
+    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full sm:max-w-4xl">
+      <div className="grid gap-4 sm:gap-6 grid-cols-1">
+        {/* Загальні налаштування */}
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Загальні налаштування</CardTitle>
+            <CardDescription className="text-sm">Налаштування теми, мови та сповіщень</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col space-y-3 sm:space-y-4">
+              <div className="flex flex-col space-y-2">
+                <Label>Тема</Label>
+                <div className="flex flex-wrap gap-2">
+                  <Button
+                    variant={theme === "light" ? "default" : "outline"}
+                    className="flex-1 min-w-[120px]"
+                    onClick={() => setTheme("light")}
+                  >
+                    <Sun className="h-4 w-4 mr-2" />
+                    Світла
+                  </Button>
+                  <Button
+                    variant={theme === "dark" ? "default" : "outline"}
+                    className="flex-1 min-w-[120px]"
+                    onClick={() => setTheme("dark")}
+                  >
+                    <Moon className="h-4 w-4 mr-2" />
+                    Темна
+                  </Button>
+                </div>
+              </div>
 
-      {/* Telegram Bot Settings */}
-      <Card className="glass-card">
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <BotIcon className="h-5 w-5" />
-            Telegram Bot
-          </CardTitle>
-          <CardDescription>Налаштування бота для відправки звітів</CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex items-center justify-between">
-            <div className="space-y-0.5">
-              <Label>Увімкнути Telegram бота</Label>
-              <p className="text-xs text-muted-foreground">Отримуйте звіти про задачі через Telegram</p>
-            </div>
-            <Switch 
-              checked={telegramSettings.enabled} 
-              onCheckedChange={(checked) => handleTelegramSettingChange('enabled', checked)}
-            />
-          </div>
+              <div className="flex flex-col space-y-2">
+                <Label>Мова</Label>
+                <Select value={language} onValueChange={setLanguage}>
+                  <SelectTrigger className="w-full">
+                    <SelectValue>
+                      <div className="flex items-center">
+                        <Languages className="h-4 w-4 mr-2" />
+                        {language === "uk" ? "Українська" : "English"}
+                      </div>
+                    </SelectValue>
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="uk">
+                      <div className="flex items-center">
+                        <Languages className="h-4 w-4 mr-2" />
+                        Українська
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="en">
+                      <div className="flex items-center">
+                        <Languages className="h-4 w-4 mr-2" />
+                        English
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
 
-          {telegramSettings.enabled && (
-            <>
-              <Separator className="my-2" />
-              
-              <div className="space-y-4">
-                <div className="space-y-2">
-                  <Label htmlFor="bot-token">Токен бота</Label>
-                  <div className="flex gap-2">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Сповіщення</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Отримувати сповіщення про нові задачі
+                  </div>
+                </div>
+                <Switch
+                  checked={notifications}
+                  onCheckedChange={setNotifications}
+                />
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Налаштування Telegram */}
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Налаштування Telegram</CardTitle>
+            <CardDescription className="text-sm">Налаштування Telegram бота для отримання звітів</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Активувати бота</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Увімкнути відправку звітів через Telegram
+                  </div>
+                </div>
+                <Switch
+                  checked={telegramSettings.enabled}
+                  onCheckedChange={(checked) => {
+                    setTelegramSettings({ ...telegramSettings, enabled: checked });
+                  }}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Токен бота</Label>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <div className="flex-1">
                     <Input
-                      id="bot-token"
                       type="password"
-                      value={telegramSettings.botToken}
-                      onChange={(e) => handleTelegramSettingChange('botToken', e.target.value)}
-                      placeholder="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
-                      className="flex-1"
+                      placeholder="Введіть токен бота"
+                      value={telegramSettings.botToken || ""}
+                      onChange={(e) => {
+                        setTelegramSettings({
+                          ...telegramSettings,
+                          botToken: e.target.value,
+                        });
+                      }}
                     />
-                    <Button 
-                      variant="outline" 
-                      size="sm" 
-                      onClick={handleValidateToken}
-                      disabled={isValidatingToken || !telegramSettings.botToken}
-                    >
-                      {isValidatingToken ? "Перевірка..." : "Перевірити"}
-                    </Button>
                   </div>
-                  {isTokenValid !== null && (
-                    <p className={`text-xs ${isTokenValid ? "text-green-500" : "text-red-500"}`}>
-                      {isTokenValid ? "✓ Токен валідний" : "✗ Токен невалідний"}
-                    </p>
-                  )}
-                  <p className="text-xs text-muted-foreground">
-                    Створіть бота через @BotFather в Telegram і отримайте токен
-                  </p>
-                </div>
-
-                <div className="space-y-2">
-                  <Label htmlFor="chat-id">ID чату</Label>
-                  <Input
-                    id="chat-id"
-                    value={telegramSettings.chatId}
-                    onChange={(e) => handleTelegramSettingChange('chatId', e.target.value)}
-                    placeholder="123456789"
-                  />
-                  <p className="text-xs text-muted-foreground">
-                    Ваш особистий ID в Telegram або ID групового чату
-                  </p>
-                </div>
-
-                <Separator className="my-2" />
-
-                <div className="space-y-2">
-                  <Label>Розклад звітів</Label>
-                  
-                  <div className="space-y-4 pt-2">
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <span className="text-sm font-medium">Щоденний звіт</span>
-                        <p className="text-xs text-muted-foreground">Отримуйте звіт про задачі щодня</p>
-                      </div>
-                      <Switch 
-                        checked={telegramSettings.reportSchedule.daily} 
-                        onCheckedChange={(checked) => handleScheduleSettingChange('daily', checked)}
-                      />
-                    </div>
-
-                    {telegramSettings.reportSchedule.daily && (
-                      <div className="ml-6 space-y-2">
-                        <Label htmlFor="daily-time">Час відправки</Label>
-                        <Input
-                          id="daily-time"
-                          type="time"
-                          value={telegramSettings.reportSchedule.dailyTime}
-                          onChange={(e) => handleScheduleSettingChange('dailyTime', e.target.value)}
-                        />
-                      </div>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    onClick={handleValidateToken}
+                    disabled={isValidatingToken || !telegramSettings.botToken}
+                    className="shrink-0"
+                  >
+                    {isValidatingToken ? (
+                      <AlertCircle className="h-4 w-4 animate-spin" />
+                    ) : isTokenValid === true ? (
+                      <CheckIcon className="h-4 w-4 text-green-500" />
+                    ) : (
+                      <BotIcon className="h-4 w-4" />
                     )}
-
-                    <div className="flex items-center justify-between">
-                      <div className="space-y-0.5">
-                        <span className="text-sm font-medium">Щотижневий звіт</span>
-                        <p className="text-xs text-muted-foreground">Отримуйте підсумковий звіт за тиждень</p>
-                      </div>
-                      <Switch 
-                        checked={telegramSettings.reportSchedule.weekly} 
-                        onCheckedChange={(checked) => handleScheduleSettingChange('weekly', checked)}
-                      />
-                    </div>
-
-                    {telegramSettings.reportSchedule.weekly && (
-                      <div className="ml-6 space-y-4">
-                        <div className="space-y-2">
-                          <Label htmlFor="weekly-day">День тижня</Label>
-                          <Select 
-                            value={telegramSettings.reportSchedule.weeklyDay.toString()} 
-                            onValueChange={(value) => handleScheduleSettingChange('weeklyDay', parseInt(value))}
-                          >
-                            <SelectTrigger>
-                              <SelectValue placeholder="Оберіть день" />
-                            </SelectTrigger>
-                            <SelectContent>
-                              <SelectItem value="1">Понеділок</SelectItem>
-                              <SelectItem value="2">Вівторок</SelectItem>
-                              <SelectItem value="3">Середа</SelectItem>
-                              <SelectItem value="4">Четвер</SelectItem>
-                              <SelectItem value="5">П'ятниця</SelectItem>
-                              <SelectItem value="6">Субота</SelectItem>
-                              <SelectItem value="0">Неділя</SelectItem>
-                            </SelectContent>
-                          </Select>
-                        </div>
-
-                        <div className="space-y-2">
-                          <Label htmlFor="weekly-time">Час відправки</Label>
-                          <Input
-                            id="weekly-time"
-                            type="time"
-                            value={telegramSettings.reportSchedule.weeklyTime}
-                            onChange={(e) => handleScheduleSettingChange('weeklyTime', e.target.value)}
-                          />
-                        </div>
-                      </div>
-                    )}
-                  </div>
+                  </Button>
                 </div>
               </div>
-            </>
-          )}
-        </CardContent>
-        {telegramSettings.enabled && (
-          <CardFooter className="flex justify-end gap-2">
-            <Button 
-              variant="outline" 
-              size="sm" 
-              onClick={handleSendTestReport}
-              disabled={isTesting || !telegramSettings.botToken || !telegramSettings.chatId}
-              className="flex items-center gap-1"
-            >
-              <Send className="h-4 w-4" />
-              {isTesting ? "Відправка..." : "Надіслати тестовий звіт"}
-            </Button>
-          </CardFooter>
-        )}
-      </Card>
 
-      <Form {...form}>
-        <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
-          {/* Telegram Integration */}
-          <div className="glass-card p-4 rounded-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h3 className="text-base font-medium">Telegram інтеграція</h3>
-                <p className="text-sm text-muted-foreground">Отримуйте сповіщення через Telegram</p>
-              </div>
-              <FormField
-                control={form.control}
-                name="telegramBotEnabled"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Switch 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {form.watch("telegramBotEnabled") && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
-                <FormField
-                  control={form.control}
-                  name="telegramUsername"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Ваш Telegram username</FormLabel>
-                      <FormControl>
-                        <div className="flex items-center space-x-2">
-                          <span className="text-muted-foreground">@</span>
-                          <Input placeholder="username" {...field} />
-                        </div>
-                      </FormControl>
-                      <FormDescription>
-                        Введіть ваш username без символу @
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="welcomeMessage"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Привітальне повідомлення</FormLabel>
-                      <FormControl>
-                        <Textarea 
-                          placeholder="Введіть текст, який бот надішле вам після з'єднання" 
-                          className="resize-none" 
-                          {...field} 
-                        />
-                      </FormControl>
-                    </FormItem>
-                  )}
+              <div className="space-y-2">
+                <Label>ID чату</Label>
+                <Input
+                  type="text"
+                  placeholder="Введіть ID чату"
+                  value={telegramSettings.chatId || ""}
+                  onChange={(e) => {
+                    setTelegramSettings({
+                      ...telegramSettings,
+                      chatId: e.target.value,
+                    });
+                  }}
                 />
               </div>
-            )}
-          </div>
 
-          {/* Email Integration */}
-          <div className="glass-card p-4 rounded-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h3 className="text-base font-medium">Email сповіщення</h3>
-                <p className="text-sm text-muted-foreground">Отримуйте нагадування на пошту</p>
-              </div>
-              <FormField
-                control={form.control}
-                name="emailEnabled"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Switch 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {form.watch("emailEnabled") && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
-                <FormField
-                  control={form.control}
-                  name="emailAddress"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Email адреса</FormLabel>
-                      <FormControl>
-                        <Input 
-                          type="email" 
-                          placeholder="your@email.com" 
-                          {...field} 
-                        />
-                      </FormControl>
-                    </FormItem>
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={handleSendTestReport}
+                  disabled={isTesting || !telegramSettings.enabled || !telegramSettings.botToken || !telegramSettings.chatId}
+                  className="w-full sm:flex-1"
+                >
+                  {isTesting ? (
+                    <AlertCircle className="h-4 w-4 animate-spin mr-2" />
+                  ) : (
+                    <Send className="h-4 w-4 mr-2" />
                   )}
-                />
-              </div>
-            )}
-          </div>
-
-          {/* Google Calendar Integration */}
-          <div className="glass-card p-4 rounded-xl space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="space-y-0.5">
-                <h3 className="text-base font-medium">Google Calendar</h3>
-                <p className="text-sm text-muted-foreground">Синхронізуйте задачі з Google Calendar</p>
-              </div>
-              <FormField
-                control={form.control}
-                name="googleCalendarEnabled"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Switch 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
-              />
-            </div>
-
-            {form.watch("googleCalendarEnabled") && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
-                <FormField
-                  control={form.control}
-                  name="googleCalendarId"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>ID Google Calendar</FormLabel>
-                      <FormControl>
-                        <Input 
-                          placeholder="calendar_id@group.calendar.google.com" 
-                          {...field} 
-                        />
-                      </FormControl>
-                      <FormDescription>
-                        Знайдіть ID календаря в налаштуваннях Google Calendar
-                      </FormDescription>
-                    </FormItem>
-                  )}
-                />
-                <Button variant="outline" className="w-full" type="button">
-                  <CalendarIcon className="mr-2 h-4 w-4" />
-                  Підключити Google Calendar
+                  Надіслати тест
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    saveTelegramSettings(telegramSettings);
+                    toast({
+                      title: "Налаштування збережено",
+                      description: "Налаштування Telegram успішно оновлено",
+                    });
+                  }}
+                  className="w-full sm:flex-1"
+                >
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Зберегти
                 </Button>
               </div>
-            )}
-          </div>
+            </div>
+          </CardContent>
+        </Card>
 
-          {/* Reminders */}
-          <div className="glass-card p-4 rounded-xl space-y-4">
+        {/* Telegram Bot Settings */}
+        <Card className="glass-card">
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <BotIcon className="h-5 w-5" />
+              Telegram Bot
+            </CardTitle>
+            <CardDescription>Налаштування бота для відправки звітів</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
-                <h3 className="text-base font-medium">Нагадування</h3>
-                <p className="text-sm text-muted-foreground">Налаштування сповіщень про задачі</p>
+                <Label>Увімкнути Telegram бота</Label>
+                <p className="text-xs text-muted-foreground">Отримуйте звіти про задачі через Telegram</p>
               </div>
-              <FormField
-                control={form.control}
-                name="reminderEnabled"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormControl>
-                      <Switch 
-                        checked={field.value} 
-                        onCheckedChange={field.onChange}
-                      />
-                    </FormControl>
-                  </FormItem>
-                )}
+              <Switch 
+                checked={telegramSettings.enabled} 
+                onCheckedChange={(checked) => handleTelegramSettingChange('enabled', checked)}
               />
             </div>
 
-            {form.watch("reminderEnabled") && (
-              <div className="space-y-4 pt-2 border-t border-border/50">
+            {telegramSettings.enabled && (
+              <>
+                <Separator className="my-2" />
+                
+                <div className="space-y-4">
+                  <div className="space-y-2">
+                    <Label htmlFor="bot-token">Токен бота</Label>
+                    <div className="flex gap-2">
+                      <Input
+                        id="bot-token"
+                        type="password"
+                        value={telegramSettings.botToken}
+                        onChange={(e) => handleTelegramSettingChange('botToken', e.target.value)}
+                        placeholder="123456789:ABCDEFGHIJKLMNOPQRSTUVWXYZ"
+                        className="flex-1"
+                      />
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        onClick={handleValidateToken}
+                        disabled={isValidatingToken || !telegramSettings.botToken}
+                      >
+                        {isValidatingToken ? "Перевірка..." : "Перевірити"}
+                      </Button>
+                    </div>
+                    {isTokenValid !== null && (
+                      <p className={`text-xs ${isTokenValid ? "text-green-500" : "text-red-500"}`}>
+                        {isTokenValid ? "✓ Токен валідний" : "✗ Токен невалідний"}
+                      </p>
+                    )}
+                    <p className="text-xs text-muted-foreground">
+                      Створіть бота через @BotFather в Telegram і отримайте токен
+                    </p>
+                  </div>
+
+                  <div className="space-y-2">
+                    <Label htmlFor="chat-id">ID чату</Label>
+                    <Input
+                      id="chat-id"
+                      value={telegramSettings.chatId}
+                      onChange={(e) => handleTelegramSettingChange('chatId', e.target.value)}
+                      placeholder="123456789"
+                    />
+                    <p className="text-xs text-muted-foreground">
+                      Ваш особистий ID в Telegram або ID групового чату
+                    </p>
+                  </div>
+
+                  <Separator className="my-2" />
+
+                  <div className="space-y-2">
+                    <Label>Розклад звітів</Label>
+                    
+                    <div className="space-y-4 pt-2">
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-medium">Щоденний звіт</span>
+                          <p className="text-xs text-muted-foreground">Отримуйте звіт про задачі щодня</p>
+                        </div>
+                        <Switch 
+                          checked={telegramSettings.reportSchedule.daily} 
+                          onCheckedChange={(checked) => handleScheduleSettingChange('daily', checked)}
+                        />
+                      </div>
+
+                      {telegramSettings.reportSchedule.daily && (
+                        <div className="ml-6 space-y-2">
+                          <Label htmlFor="daily-time">Час відправки</Label>
+                          <Input
+                            id="daily-time"
+                            type="time"
+                            value={telegramSettings.reportSchedule.dailyTime}
+                            onChange={(e) => handleScheduleSettingChange('dailyTime', e.target.value)}
+                          />
+                        </div>
+                      )}
+
+                      <div className="flex items-center justify-between">
+                        <div className="space-y-0.5">
+                          <span className="text-sm font-medium">Щотижневий звіт</span>
+                          <p className="text-xs text-muted-foreground">Отримуйте підсумковий звіт за тиждень</p>
+                        </div>
+                        <Switch 
+                          checked={telegramSettings.reportSchedule.weekly} 
+                          onCheckedChange={(checked) => handleScheduleSettingChange('weekly', checked)}
+                        />
+                      </div>
+
+                      {telegramSettings.reportSchedule.weekly && (
+                        <div className="ml-6 space-y-4">
+                          <div className="space-y-2">
+                            <Label htmlFor="weekly-day">День тижня</Label>
+                            <Select 
+                              value={telegramSettings.reportSchedule.weeklyDay.toString()} 
+                              onValueChange={(value) => handleScheduleSettingChange('weeklyDay', parseInt(value))}
+                            >
+                              <SelectTrigger>
+                                <SelectValue placeholder="Оберіть день" />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="1">Понеділок</SelectItem>
+                                <SelectItem value="2">Вівторок</SelectItem>
+                                <SelectItem value="3">Середа</SelectItem>
+                                <SelectItem value="4">Четвер</SelectItem>
+                                <SelectItem value="5">П'ятниця</SelectItem>
+                                <SelectItem value="6">Субота</SelectItem>
+                                <SelectItem value="0">Неділя</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="space-y-2">
+                            <Label htmlFor="weekly-time">Час відправки</Label>
+                            <Input
+                              id="weekly-time"
+                              type="time"
+                              value={telegramSettings.reportSchedule.weeklyTime}
+                              onChange={(e) => handleScheduleSettingChange('weeklyTime', e.target.value)}
+                            />
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                </div>
+              </>
+            )}
+          </CardContent>
+        </Card>
+
+        <Form {...form}>
+          <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
+            {/* Telegram Integration */}
+            <div className="glass-card p-4 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-medium">Telegram інтеграція</h3>
+                  <p className="text-sm text-muted-foreground">Отримуйте сповіщення через Telegram</p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="telegramBotEnabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {form.watch("telegramBotEnabled") && (
+                <div className="space-y-4 pt-2 border-t border-border/50">
+                  <FormField
+                    control={form.control}
+                    name="telegramUsername"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Ваш Telegram username</FormLabel>
+                        <FormControl>
+                          <div className="flex items-center space-x-2">
+                            <span className="text-muted-foreground">@</span>
+                            <Input placeholder="username" {...field} />
+                          </div>
+                        </FormControl>
+                        <FormDescription>
+                          Введіть ваш username без символу @
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+
+                  <FormField
+                    control={form.control}
+                    name="welcomeMessage"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Привітальне повідомлення</FormLabel>
+                        <FormControl>
+                          <Textarea 
+                            placeholder="Введіть текст, який бот надішле вам після з'єднання" 
+                            className="resize-none" 
+                            {...field} 
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Email Integration */}
+            <div className="glass-card p-4 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-medium">Email сповіщення</h3>
+                  <p className="text-sm text-muted-foreground">Отримуйте нагадування на пошту</p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="emailEnabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {form.watch("emailEnabled") && (
+                <div className="space-y-4 pt-2 border-t border-border/50">
+                  <FormField
+                    control={form.control}
+                    name="emailAddress"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Email адреса</FormLabel>
+                        <FormControl>
+                          <Input 
+                            type="email" 
+                            placeholder="your@email.com" 
+                            {...field} 
+                          />
+                        </FormControl>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            {/* Google Calendar Integration */}
+            <div className="glass-card p-4 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-medium">Google Calendar</h3>
+                  <p className="text-sm text-muted-foreground">Синхронізуйте задачі з Google Calendar</p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="googleCalendarEnabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {form.watch("googleCalendarEnabled") && (
+                <div className="space-y-4 pt-2 border-t border-border/50">
+                  <FormField
+                    control={form.control}
+                    name="googleCalendarId"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>ID Google Calendar</FormLabel>
+                        <FormControl>
+                          <Input 
+                            placeholder="calendar_id@group.calendar.google.com" 
+                            {...field} 
+                          />
+                        </FormControl>
+                        <FormDescription>
+                          Знайдіть ID календаря в налаштуваннях Google Calendar
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                  <Button variant="outline" className="w-full" type="button">
+                    <CalendarIcon className="mr-2 h-4 w-4" />
+                    Підключити Google Calendar
+                  </Button>
+                </div>
+              )}
+            </div>
+
+            {/* Reminders */}
+            <div className="glass-card p-4 rounded-xl space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <h3 className="text-base font-medium">Нагадування</h3>
+                  <p className="text-sm text-muted-foreground">Налаштування сповіщень про задачі</p>
+                </div>
+                <FormField
+                  control={form.control}
+                  name="reminderEnabled"
+                  render={({ field }) => (
+                    <FormItem>
+                      <FormControl>
+                        <Switch 
+                          checked={field.value} 
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+              </div>
+
+              {form.watch("reminderEnabled") && (
+                <div className="space-y-4 pt-2 border-t border-border/50">
+                  <FormField
+                    control={form.control}
+                    name="defaultReminderTime"
+                    render={({ field }) => (
+                      <FormItem>
+                        <FormLabel>Час нагадування за замовчуванням</FormLabel>
+                        <FormControl>
+                          <Input type="time" {...field} />
+                        </FormControl>
+                        <FormDescription>
+                          Час, коли ви бажаєте отримувати нагадування
+                        </FormDescription>
+                      </FormItem>
+                    )}
+                  />
+                </div>
+              )}
+            </div>
+
+            <Button type="submit" className="w-full" disabled={isSaving}>
+              {isSaving ? (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4 animate-spin" />
+                  Зберігаємо...
+                </>
+              ) : (
+                <>
+                  <SaveIcon className="mr-2 h-4 w-4" />
+                  Зберегти налаштування
+                </>
+              )}
+            </Button>
+          </form>
+        </Form>
+
+        {/* Налаштування Siri */}
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Налаштування Siri</CardTitle>
+            <CardDescription className="text-sm">Налаштування голосового асистента</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <div className="flex flex-col space-y-4">
+              <div className="space-y-2">
+                <Label>Привітання</Label>
+                <Input
+                  placeholder="Введіть текст привітання"
+                  value={siriSettings.greeting}
+                  onChange={(e) =>
+                    setSiriSettings({ ...siriSettings, greeting: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Ім'я користувача</Label>
+                <Input
+                  placeholder="Введіть ваше ім'я"
+                  value={siriSettings.userName}
+                  onChange={(e) =>
+                    setSiriSettings({ ...siriSettings, userName: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="space-y-2">
+                <Label>Звертання</Label>
+                <Input
+                  placeholder="Як до вас звертатися"
+                  value={siriSettings.userTitle}
+                  onChange={(e) =>
+                    setSiriSettings({ ...siriSettings, userTitle: e.target.value })
+                  }
+                />
+              </div>
+
+              <div className="flex items-center justify-between">
+                <div className="space-y-0.5">
+                  <Label>Google Cloud TTS</Label>
+                  <div className="text-sm text-muted-foreground">
+                    Використовувати Google Cloud Text-to-Speech
+                  </div>
+                </div>
+                <Switch
+                  checked={siriSettings.useCloudTTS}
+                  onCheckedChange={(checked) =>
+                    setSiriSettings({ ...siriSettings, useCloudTTS: checked })
+                  }
+                />
+              </div>
+
+              {siriSettings.useCloudTTS && (
+                <div className="space-y-2">
+                  <Label>API ключ</Label>
+                  <div className="flex flex-col sm:flex-row gap-2">
+                    <div className="flex-1">
+                      <Input
+                        type="file"
+                        accept=".json"
+                        ref={fileInputRef}
+                        onChange={handleFileUpload}
+                        className="hidden"
+                      />
+                      <div className="flex flex-col sm:flex-row gap-2">
+                        <Input
+                          readOnly
+                          value={apiKeyFilename || "Файл не обрано"}
+                          className="flex-1"
+                        />
+                        <Button
+                          variant="outline"
+                          onClick={() => fileInputRef.current?.click()}
+                          className="shrink-0"
+                        >
+                          <UploadCloud className="h-4 w-4 mr-2" />
+                          Обрати файл
+                        </Button>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              )}
+
+              <div className="flex flex-col sm:flex-row gap-2">
+                <Button
+                  variant="outline"
+                  onClick={testGreeting}
+                  disabled={isSpeaking}
+                  className="w-full sm:flex-1"
+                >
+                  <Mic className="h-4 w-4 mr-2" />
+                  Тест привітання
+                </Button>
+                
+                <Button
+                  variant="outline"
+                  onClick={() => {
+                    localStorage.setItem(SIRI_SETTINGS_KEY, JSON.stringify(siriSettings));
+                    toast({
+                      title: "Налаштування збережено",
+                      description: "Налаштування Siri успішно оновлено",
+                    });
+                  }}
+                  className="w-full sm:flex-1"
+                >
+                  <SaveIcon className="h-4 w-4 mr-2" />
+                  Зберегти
+                </Button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+
+        {/* Налаштування сповіщень */}
+        <Card className="w-full">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl">Налаштування сповіщень</CardTitle>
+            <CardDescription className="text-sm">Налаштування часу та типу сповіщень</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3 sm:space-y-4">
+            <Form {...form}>
+              <div className="space-y-4">
+                <FormField
+                  control={form.control}
+                  name="reminderEnabled"
+                  render={({ field }) => (
+                    <FormItem className="flex items-center justify-between">
+                      <div className="space-y-0.5">
+                        <FormLabel>Нагадування</FormLabel>
+                        <FormDescription>
+                          Отримувати нагадування про задачі
+                        </FormDescription>
+                      </div>
+                      <FormControl>
+                        <Switch
+                          checked={field.value}
+                          onCheckedChange={field.onChange}
+                        />
+                      </FormControl>
+                    </FormItem>
+                  )}
+                />
+
                 <FormField
                   control={form.control}
                   name="defaultReminderTime"
                   render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Час нагадування за замовчуванням</FormLabel>
-                      <FormControl>
-                        <Input type="time" {...field} />
-                      </FormControl>
+                    <FormItem className="space-y-2">
+                      <FormLabel>Час нагадування</FormLabel>
                       <FormDescription>
-                        Час, коли ви бажаєте отримувати нагадування
+                        За скільки хвилин нагадувати про задачу
                       </FormDescription>
+                      <FormControl>
+                        <Input
+                          type="number"
+                          {...field}
+                          min="1"
+                          max="1440"
+                        />
+                      </FormControl>
                     </FormItem>
                   )}
                 />
-              </div>
-            )}
-          </div>
 
-          <Button type="submit" className="w-full" disabled={isSaving}>
-            {isSaving ? (
-              <>
-                <SaveIcon className="mr-2 h-4 w-4 animate-spin" />
-                Зберігаємо...
-              </>
-            ) : (
-              <>
-                <SaveIcon className="mr-2 h-4 w-4" />
-                Зберегти налаштування
-              </>
-            )}
-          </Button>
-        </form>
-      </Form>
+                <div className="flex flex-col sm:flex-row gap-2">
+                  <Button
+                    variant="outline"
+                    onClick={() => {
+                      // Зберігаємо налаштування
+                      const values = form.getValues();
+                      localStorage.setItem('notification_settings', JSON.stringify(values));
+                      toast({
+                        title: "Налаштування збережено",
+                        description: "Налаштування сповіщень успішно оновлено",
+                      });
+                    }}
+                    className="w-full sm:flex-1"
+                  >
+                    <SaveIcon className="h-4 w-4 mr-2" />
+                    Зберегти
+                  </Button>
+                </div>
+              </div>
+            </Form>
+          </CardContent>
+        </Card>
+
+        {/* Видалення даних */}
+        <Card className="w-full border-destructive/50">
+          <CardHeader className="space-y-1">
+            <CardTitle className="text-lg sm:text-xl text-destructive">Видалення даних</CardTitle>
+            <CardDescription className="text-sm">Очищення даних додатку</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <Button
+              variant="destructive"
+              onClick={handleClearData}
+              className="w-full sm:w-auto"
+            >
+              <Trash2 className="h-4 w-4 mr-2" />
+              Видалити всі задачі
+            </Button>
+          </CardContent>
+        </Card>
+      </div>
     </div>
   );
 }
