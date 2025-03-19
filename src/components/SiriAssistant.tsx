@@ -1,9 +1,11 @@
-import React, { useState, useEffect, useRef } from "react";
+import React, { useState, useEffect, useRef, useCallback } from "react";
 import { Volume2, VolumeX, Mic, MicOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { toast } from "@/hooks/use-toast";
 import { Task } from "@/components/TasksList";
 import { SpeechRecognition, SpeechRecognitionEvent } from "@/types/speech-recognition";
+import { formatTaskCount, formatTimeForSpeech } from "@/utils/ukranian-numerals";
+import { formatGreeting, formatTasksText } from "@/utils/siri-text-formatter";
 
 interface SiriAssistantProps {
   tasks: Task[];
@@ -70,7 +72,13 @@ const generateWaveform = (): number[] => {
 // Створюємо компонент з підтримкою ref
 export const SiriAssistant = React.forwardRef<
   { startListening: () => void },
-  SiriAssistantProps
+  { 
+    tasks: Task[];
+    selectedDate: Date;
+    onFilterDate: (date: Date) => void;
+    onAddTask: (task: Omit<Task, "id">) => void;
+    onListeningChange: (isListening: boolean) => void;
+  }
 >(({ tasks, selectedDate, onFilterDate, onAddTask, onListeningChange }, ref) => {
   // Стан прослуховування
   const [isListening, setIsListening] = useState(false);
@@ -695,92 +703,58 @@ export const SiriAssistant = React.forwardRef<
     }
   };
 
+  // Функція для отримання налаштувань
+  const getSettings = () => {
+    try {
+      return JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
+    } catch (error) {
+      console.error("Помилка при зчитуванні налаштувань:", error);
+      return {};
+    }
+  };
+
+  // Функція для отримання задач на сьогодні
+  const getTodayTasks = useCallback((allTasks: Task[]): Task[] => {
+    const today = new Date();
+    return allTasks.filter(task => 
+      task.date.getDate() === today.getDate() &&
+      task.date.getMonth() === today.getMonth() &&
+      task.date.getFullYear() === today.getFullYear() &&
+      !task.completed
+    );
+  }, []);
+
+  // Функція для отримання всіх задач
+  const getAllTasks = useCallback((): Task[] => {
+    const savedTasksJson = localStorage.getItem("tasks");
+    if (!savedTasksJson) return tasks;
+
+    try {
+      const parsedTasks = JSON.parse(savedTasksJson);
+      return parsedTasks.map((task: any) => ({
+        ...task,
+        date: new Date(task.date)
+      }));
+    } catch (error) {
+      console.error("Помилка при зчитуванні задач:", error);
+      return tasks;
+    }
+  }, [tasks]);
+
   // Оновлена функція обробки команди "задачі"
-  const handleTasksCommand = async () => {
+  const handleTasksCommand = useCallback(async () => {
     try {
       const settings = JSON.parse(localStorage.getItem(SIRI_SETTINGS_KEY) || '{}');
-      const greeting = `${settings.greeting}${settings.userName ? ', ' + settings.userName : ''}${settings.userTitle ? ', ' + settings.userTitle : ''}. Я Siri AI, ваш особистий асистент. Давайте подивимося на ваші задачі на сьогодні.`;
-      
-      await speakText(greeting);
+      await speakText(formatGreeting(settings));
 
-      // Отримуємо всі задачі з localStorage
-      const savedTasksJson = localStorage.getItem("tasks");
-      let allTasks: Task[] = [];
-      
-      if (savedTasksJson) {
-        try {
-          const parsedTasks = JSON.parse(savedTasksJson);
-          // Конвертуємо дати з рядків в об'єкти Date
-          allTasks = parsedTasks.map((task: any) => ({
-            ...task,
-            date: new Date(task.date)
-          }));
-        } catch (error) {
-          console.error("Помилка при зчитуванні задач:", error);
-          allTasks = tasks; // Використовуємо задачі з пропсів як запасний варіант
-        }
-      } else {
-        allTasks = tasks; // Якщо в localStorage нічого немає, використовуємо задачі з пропсів
-      }
-
-      // Отримуємо задачі на сьогодні
-      const today = new Date();
-      const todayTasks = allTasks.filter(task => 
-        task.date.getDate() === today.getDate() &&
-        task.date.getMonth() === today.getMonth() &&
-        task.date.getFullYear() === today.getFullYear() &&
-        !task.completed
-      );
-
-      if (todayTasks.length > 0) {
-        // Формуємо початкове повідомлення з правильними відмінками
-        const taskCount = todayTasks.length;
-        let taskForm = 'активних задач';
-        if (taskCount === 1) {
-          taskForm = 'активна задача';
-        } else if (taskCount >= 2 && taskCount <= 4) {
-          taskForm = 'активні задачі';
-        }
-        
-        let tasksText = `На сьогодні у вас ${taskCount} ${taskForm}. `;
-
-        // Сортуємо задачі за часом
-        todayTasks.sort((a, b) => a.date.getTime() - b.date.getTime());
-
-        // Спрощуємо текст, щоб Siri AI читала тільки тему та час у форматі "о 12 годині - задача"
-        todayTasks.forEach(task => {
-          const taskDate = new Date(task.date);
-          const hours = taskDate.getHours();
-          const minutes = taskDate.getMinutes();
-          
-          // Правильна форма "годин" залежно від числа
-          let hoursForm = "годин";
-          if (hours === 1 || hours === 21) {
-            hoursForm = "годину";
-          } else if ([2, 3, 4].includes(hours % 10) && ![12, 13, 14].includes(hours)) {
-            hoursForm = "години";
-          }
-          
-          // Якщо час без хвилин (15:00)
-          if (minutes === 0) {
-            tasksText += `В ${hours} ${hoursForm} - ${task.title}. `;
-          } else {
-            // Якщо є хвилини
-            tasksText += `В ${hours} ${hoursForm} ${minutes} - ${task.title}. `;
-          }
-        });
-
-        tasksText += "Чим ще можу допомогти?";
-        await speakText(tasksText);
-      } else {
-        const noTasksText = `На сьогодні у вас немає активних задач. Ви вільні, ${settings.userTitle || 'сер'}. Чим ще можу допомогти?`;
-        await speakText(noTasksText);
-      }
+      const allTasks = getAllTasks();
+      const todayTasks = getTodayTasks(allTasks);
+      await speakText(formatTasksText(todayTasks, settings));
     } catch (error) {
       console.error("Помилка при обробці задач:", error);
       await speakText("Вибачте, виникла помилка при обробці ваших задач. Чим ще можу допомогти?");
     }
-  };
+  }, [getAllTasks, getTodayTasks, speakText]);
 
   // Функція для отримання перекладу категорії
   const getCategoryLabel = (category: string): string => {
