@@ -372,37 +372,19 @@ export function Settings() {
 
   // Відправка тестового звіту
   const handleSendTestReport = async () => {
-    if (!telegramSettings.botToken || !telegramSettings.chatId) {
-      toast({
-        title: "Помилка",
-        description: "Введіть токен бота та ID чату",
-        variant: "destructive",
-      });
-      return;
-    }
-
     setIsTesting(true);
-
     try {
-      const success = await sendTestReport();
-
-      if (success) {
-        toast({
-          title: "Тестовий звіт відправлено",
-          description: "Перевірте повідомлення у Telegram",
-        });
-      } else {
-        toast({
-          title: "Помилка",
-          description: "Не вдалося відправити тестовий звіт",
-          variant: "destructive",
-        });
-      }
+      const result = await sendTestReport();
+      toast({
+        title: result.success ? "Успіх" : "Помилка",
+        description: result.message,
+        variant: result.success ? "default" : "destructive",
+      });
     } catch (error) {
-      console.error("Помилка відправки тестового звіту:", error);
+      console.error("Помилка при відправці тестового звіту:", error);
       toast({
         title: "Помилка",
-        description: "Виникла помилка при відправці звіту",
+        description: "Не вдалося відправити тестовий звіт",
         variant: "destructive",
       });
     } finally {

@@ -2,6 +2,8 @@
  * Сервіс для взаємодії з Telegram API
  */
 
+import { wasDailyReportSentToday, wasWeeklyReportSentThisWeek } from './report-history';
+
 // Інтерфейс для налаштувань Telegram
 export interface TelegramSettings {
   botToken: string;
@@ -271,12 +273,19 @@ export const formatWeeklyReport = (tasks: any[], startDate: Date, endDate: Date)
 /**
  * Відправляє тестовий звіт
  */
-export const sendTestReport = async (): Promise<boolean> => {
+export const sendTestReport = async (): Promise<{ success: boolean; message?: string }> => {
   const settings = loadTelegramSettings();
   
   if (!settings.enabled || !settings.botToken || !settings.chatId) {
-    return false;
+    return { 
+      success: false, 
+      message: 'Налаштування Telegram не активовані або відсутні необхідні дані' 
+    };
   }
+  
+  // Перевіряємо статус звітів
+  const dailyReportSent = wasDailyReportSentToday();
+  const weeklyReportSent = wasWeeklyReportSentThisWeek();
   
   // Отримуємо всі задачі з localStorage
   try {
@@ -293,7 +302,10 @@ export const sendTestReport = async (): Promise<boolean> => {
     let message = `<b>🧪 ТЕСТОВИЙ ЗВІТ</b>\n\n` +
       `Це тестове повідомлення для перевірки налаштувань Telegram бота.\n\n` +
       `<b>📅 Дата:</b> ${formattedDate}\n` +
-      `<b>⏰ Час:</b> ${today.toLocaleTimeString('uk-UA')}\n\n`;
+      `<b>⏰ Час:</b> ${today.toLocaleTimeString('uk-UA')}\n\n` +
+      `<b>📊 СТАТУС ЗВІТІВ:</b>\n` +
+      `• Щоденний звіт: ${dailyReportSent ? '✅ Надіслано' : '⏳ Не надіслано'}\n` +
+      `• Щотижневий звіт: ${weeklyReportSent ? '✅ Надіслано' : '⏳ Не надіслано'}\n\n`;
     
     // Додаємо інформацію про всі задачі
     const totalWord = getTaskWordForm(allTasks.length);
@@ -337,9 +349,16 @@ export const sendTestReport = async (): Promise<boolean> => {
     
     message += `\n<b>✨ Якщо ви бачите це повідомлення, значить налаштування бота працюють коректно.</b>`;
     
-    return await sendTelegramMessage(settings.botToken, settings.chatId, message);
+    const success = await sendTelegramMessage(settings.botToken, settings.chatId, message);
+    return { 
+      success, 
+      message: success ? 'Тестовий звіт успішно надіслано' : 'Помилка відправки тестового звіту' 
+    };
   } catch (error) {
     console.error("Помилка при формуванні тестового звіту:", error);
-    return false;
+    return { 
+      success: false, 
+      message: 'Помилка при формуванні тестового звіту' 
+    };
   }
 }; 

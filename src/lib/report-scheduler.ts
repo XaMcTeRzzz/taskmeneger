@@ -10,6 +10,13 @@ import {
   formatWeeklyReport 
 } from './telegram-service';
 
+import {
+  wasDailyReportSentToday,
+  wasWeeklyReportSentThisWeek,
+  markDailyReportSent,
+  markWeeklyReportSent
+} from './report-history';
+
 // Ключ для зберігання задач в localStorage
 const TASKS_STORAGE_KEY = 'tasks';
 
@@ -143,11 +150,24 @@ const sendDailyReport = async (): Promise<boolean> => {
     return false;
   }
   
+  // Перевіряємо, чи звіт вже був надісланий сьогодні
+  if (wasDailyReportSentToday()) {
+    console.log('Щоденний звіт вже був надісланий сьогодні');
+    return false;
+  }
+  
   const today = new Date();
   const tasks = getTasksForDay(today);
   const report = formatDailyReport(tasks, today);
   
-  return await sendTelegramMessage(settings.botToken, settings.chatId, report);
+  const success = await sendTelegramMessage(settings.botToken, settings.chatId, report);
+  
+  if (success) {
+    // Зберігаємо інформацію про надісланий звіт
+    markDailyReportSent();
+  }
+  
+  return success;
 };
 
 /**
@@ -160,11 +180,24 @@ const sendWeeklyReport = async (): Promise<boolean> => {
     return false;
   }
   
+  // Перевіряємо, чи звіт вже був надісланий цього тижня
+  if (wasWeeklyReportSentThisWeek()) {
+    console.log('Щотижневий звіт вже був надісланий цього тижня');
+    return false;
+  }
+  
   const today = new Date();
   const { tasks, startDate, endDate } = getTasksForWeek(today);
   const report = formatWeeklyReport(tasks, startDate, endDate);
   
-  return await sendTelegramMessage(settings.botToken, settings.chatId, report);
+  const success = await sendTelegramMessage(settings.botToken, settings.chatId, report);
+  
+  if (success) {
+    // Зберігаємо інформацію про надісланий звіт
+    markWeeklyReportSent();
+  }
+  
+  return success;
 };
 
 /**
@@ -173,27 +206,20 @@ const sendWeeklyReport = async (): Promise<boolean> => {
 export const initReportScheduler = (): void => {
   console.log('Ініціалізуємо планувальник звітів...');
   
-  // Додаємо контроль часу останньої відправки, щоб запобігти багаторазовій відправці
-  let lastDailyReportTime = '';
-  let lastWeeklyReportTime = '';
-  
   // Перевіряємо кожні 15 секунд, чи потрібно відправити звіт
   setInterval(() => {
     try {
-      // Перезавантажуємо налаштування при кожній перевірці, 
-      // щоб врахувати можливі зміни
+      // Перезавантажуємо налаштування при кожній перевірці
       const settings = loadTelegramSettings();
       
-      // Отримуємо поточний час у форматі HH:MM, який використовується для порівняння
+      // Отримуємо поточний час у форматі HH:MM
       const now = new Date();
       const currentTimeStr = `${now.getHours()}:${now.getMinutes()}`;
       
       console.log(`Перевірка розкладу звітів: ${currentTimeStr}`);
       
       // Перевіряємо щоденний звіт
-      if (shouldSendDailyReport(settings) && lastDailyReportTime !== currentTimeStr) {
-        lastDailyReportTime = currentTimeStr;
-        
+      if (shouldSendDailyReport(settings)) {
         console.log(`Відправка щоденного звіту o ${currentTimeStr}`);
         
         sendDailyReport()
@@ -210,9 +236,7 @@ export const initReportScheduler = (): void => {
       }
       
       // Перевіряємо щотижневий звіт
-      if (shouldSendWeeklyReport(settings) && lastWeeklyReportTime !== currentTimeStr) {
-        lastWeeklyReportTime = currentTimeStr;
-        
+      if (shouldSendWeeklyReport(settings)) {
         console.log(`Відправка щотижневого звіту o ${currentTimeStr}`);
         
         sendWeeklyReport()
