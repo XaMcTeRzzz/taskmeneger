@@ -9,6 +9,7 @@ interface ReportHistory {
   };
   lastDailyReport?: {
     date: string;
+    time: string;
   };
 }
 
@@ -48,14 +49,20 @@ const getWeekNumber = (date: Date): number => {
 };
 
 /**
- * Перевіряє, чи був вже надісланий щоденний звіт сьогодні
+ * Перевіряє, чи був вже надісланий щоденний звіт сьогодні в цей час
  */
 export const wasDailyReportSentToday = (): boolean => {
   const history = loadReportHistory();
   if (!history.lastDailyReport) return false;
   
-  const today = new Date().toISOString().split('T')[0];
-  return history.lastDailyReport.date === today;
+  const now = new Date();
+  const today = now.toISOString().split('T')[0];
+  const currentHour = now.getHours();
+  
+  if (history.lastDailyReport.date !== today) return false;
+  
+  const lastReportHour = parseInt(history.lastDailyReport.time.split(':')[0]);
+  return currentHour === lastReportHour;
 };
 
 /**
@@ -77,9 +84,11 @@ export const wasWeeklyReportSentThisWeek = (): boolean => {
  * Записує інформацію про надісланий щоденний звіт
  */
 export const markDailyReportSent = (): void => {
+  const now = new Date();
   const history = loadReportHistory();
   history.lastDailyReport = {
-    date: new Date().toISOString().split('T')[0]
+    date: now.toISOString().split('T')[0],
+    time: `${now.getHours()}:${now.getMinutes()}`
   };
   saveReportHistory(history);
 };
@@ -96,4 +105,15 @@ export const markWeeklyReportSent = (): void => {
     year: now.getFullYear()
   };
   saveReportHistory(history);
+};
+
+/**
+ * Скидає історію звітів
+ */
+export const resetReportHistory = (): void => {
+  try {
+    localStorage.removeItem(REPORT_HISTORY_KEY);
+  } catch (error) {
+    console.error('Помилка при скиданні історії звітів:', error);
+  }
 }; 

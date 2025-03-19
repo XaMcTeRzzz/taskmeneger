@@ -29,7 +29,33 @@ const initializeTheme = () => {
 // Ініціалізуємо тему перед рендерингом додатку
 initializeTheme();
 
-// Ініціалізуємо планувальник звітів
+// Реєструємо Service Worker
+if ('serviceWorker' in navigator && 'periodicSync' in navigator.serviceWorker) {
+  window.addEventListener('load', async () => {
+    try {
+      const registration = await navigator.serviceWorker.register('/service-worker.ts', {
+        scope: '/'
+      });
+
+      // Реєструємо періодичну синхронізацію
+      const status = await navigator.permissions.query({
+        name: 'periodic-background-sync' as PermissionName
+      });
+
+      if (status.state === 'granted') {
+        await registration.periodicSync.register('check-reports', {
+          minInterval: 15 * 60 * 1000 // Мінімальний інтервал 15 хвилин
+        });
+      }
+
+      console.log('Service Worker зареєстровано успішно');
+    } catch (error) {
+      console.error('Помилка реєстрації Service Worker:', error);
+    }
+  });
+}
+
+// Ініціалізуємо планувальник звітів (як резервний варіант)
 initReportScheduler();
 
 // Встановлюємо слухач для автоматичної зміни теми при зміні системних налаштувань
