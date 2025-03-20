@@ -124,13 +124,24 @@ const shouldSendDailyReport = (settings: TelegramSettings): boolean => {
     console.log('Щоденні звіти вимкнено');
     return false;
   }
+
+  // Перевіряємо, чи звіт вже був надісланий сьогодні
+  if (wasDailyReportSentToday()) {
+    console.log('Щоденний звіт вже був надісланий сьогодні');
+    return false;
+  }
   
   const now = new Date();
   const [hours, minutes] = settings.reportSchedule.dailyTime.split(':').map(Number);
   const currentHours = now.getHours();
   const currentMinutes = now.getMinutes();
   
-  const shouldSend = currentHours === hours && currentMinutes === minutes;
+  // Перевіряємо, чи поточний час співпадає з запланованим
+  const scheduledTime = new Date(now);
+  scheduledTime.setHours(hours, minutes, 0, 0);
+  
+  // Відправляємо звіт, якщо поточний час >= запланованому часу
+  const shouldSend = now >= scheduledTime;
   console.log(`Перевірка часу відправки: ${currentHours}:${currentMinutes} vs ${hours}:${minutes}`);
   console.log(`Результат перевірки: ${shouldSend ? 'Час відправляти' : 'Ще не час'}`);
   
@@ -222,23 +233,23 @@ export const initReportScheduler = (): void => {
   // Перевіряємо пропущені звіти при ініціалізації
   const settings = loadTelegramSettings();
   
-  // Перевіряємо пропущений щоденний звіт
-  if (checkMissedDailyReport(settings)) {
-    console.log('Виявлено пропущений щоденний звіт, відправляємо...');
+  // Перевіряємо щоденний звіт
+  if (shouldSendDailyReport(settings)) {
+    console.log('Відправляємо щоденний звіт...');
     sendDailyReport()
       .then(success => {
         if (success) {
-          console.log('Пропущений щоденний звіт успішно відправлено');
+          console.log('Щоденний звіт успішно відправлено');
         } else {
-          console.error('Помилка відправки пропущеного щоденного звіту');
+          console.error('Помилка відправки щоденного звіту');
         }
       })
       .catch(error => {
-        console.error('Помилка під час відправки пропущеного щоденного звіту:', error);
+        console.error('Помилка під час відправки щоденного звіту:', error);
       });
   }
 
-  // Перевіряємо пропущений щотижневий звіт
+  // Перевіряємо щотижневий звіт
   if (checkMissedWeeklyReport(settings)) {
     console.log('Виявлено пропущений щотижневий звіт, відправляємо...');
     sendWeeklyReport()

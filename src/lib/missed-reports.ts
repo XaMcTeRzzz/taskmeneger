@@ -3,18 +3,11 @@ import { wasDailyReportSentToday, wasWeeklyReportSentThisWeek } from './report-h
 
 /**
  * Перевіряє, чи був пропущений щоденний звіт
+ * Ця функція більше не використовується, оскільки логіка перенесена в shouldSendDailyReport
+ * @deprecated
  */
 export const checkMissedDailyReport = (settings: TelegramSettings): boolean => {
-  if (!settings.enabled || !settings.reportSchedule.daily) return false;
-
-  const now = new Date();
-  const [scheduledHours, scheduledMinutes] = settings.reportSchedule.dailyTime.split(':').map(Number);
-  const scheduledTime = new Date(now);
-  scheduledTime.setHours(scheduledHours, scheduledMinutes, 0, 0);
-
-  // Перевіряємо, чи поточний час пізніше запланованого часу звіту
-  // і чи не був звіт вже надісланий сьогодні
-  return now > scheduledTime && !wasDailyReportSentToday();
+  return false;
 };
 
 /**
@@ -22,6 +15,11 @@ export const checkMissedDailyReport = (settings: TelegramSettings): boolean => {
  */
 export const checkMissedWeeklyReport = (settings: TelegramSettings): boolean => {
   if (!settings.enabled || !settings.reportSchedule.weekly) return false;
+
+  // Перевіряємо, чи звіт вже був надісланий цього тижня
+  if (wasWeeklyReportSentThisWeek()) {
+    return false;
+  }
 
   const now = new Date();
   const currentDay = now.getDay();
@@ -32,7 +30,7 @@ export const checkMissedWeeklyReport = (settings: TelegramSettings): boolean => 
   if (currentDay === scheduledDay) {
     const scheduledTime = new Date(now);
     scheduledTime.setHours(scheduledHours, scheduledMinutes, 0, 0);
-    return now > scheduledTime && !wasWeeklyReportSentThisWeek();
+    return now > scheduledTime;
   }
 
   return false;
