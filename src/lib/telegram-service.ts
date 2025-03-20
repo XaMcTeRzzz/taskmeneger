@@ -188,7 +188,8 @@ export const formatDailyReport = (tasks: any[], date: Date): string => {
   report += `\n<b>✅ ВИКОНАНІ ЗАДАЧІ (${completedTasks.length} ${getTaskWordForm(completedTasks.length)}):</b>\n`;
   if (completedTasks.length > 0) {
     completedTasks.forEach((task, index) => {
-      report += `   ${index + 1}. ${task.title}\n`;
+      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : 'дата не вказана';
+      report += `   ${index + 1}. ${task.title} (${dateInfo})\n`;
     });
   } else {
     report += "   Немає виконаних задач\n";
@@ -260,8 +261,8 @@ export const formatWeeklyReport = (tasks: any[], startDate: Date, endDate: Date)
   report += `\n<b>✅ ВИКОНАНІ ЗАДАЧІ (${completedTasks.length} ${getTaskWordForm(completedTasks.length)}):</b>\n`;
   if (completedTasks.length > 0) {
     completedTasks.forEach((task, index) => {
-      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : '';
-      report += `   ${index + 1}. ${task.title}${dateInfo ? ` (${dateInfo})` : ''}\n`;
+      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : 'дата не вказана';
+      report += `   ${index + 1}. ${task.title} (${dateInfo})\n`;
     });
   } else {
     report += "   Немає виконаних задач\n";
@@ -335,7 +336,11 @@ export const sendTestReport = async (): Promise<{ success: boolean; message?: st
       message += `\n<b>✅ ВИКОНАНІ ЗАДАЧІ (${completedTasks.length} ${completedWord}):</b>\n`;
       if (completedTasks.length > 0) {
         completedTasks.slice(0, 5).forEach((task: any, index: number) => {
-          message += `   ${index + 1}. ${task.title}\n`;
+          const formattedTaskDate = safeFormatDate(task.dueDate, { 
+            day: 'numeric', 
+            month: 'long'
+          });
+          message += `   ${index + 1}. ${task.title} (${formattedTaskDate})\n`;
         });
         
         if (completedTasks.length > 5) {
