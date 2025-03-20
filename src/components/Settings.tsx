@@ -408,7 +408,7 @@ export function Settings() {
         <CardTitle className="flex items-center"><Mic className="mr-2" size={20} />Налаштування Siri AI</CardTitle>
         <CardDescription>Налаштуйте голосового асистента для вашого додатка</CardDescription>
       </CardHeader>
-      <CardContent className="space-y-4">
+      <CardContent className="space-y-4 px-4 sm:px-6">
         <div className="space-y-4">
           <div>
             <Label htmlFor="greeting">Привітання</Label>
@@ -617,7 +617,7 @@ export function Settings() {
   };
 
   return (
-    <div className="container mx-auto px-2 sm:px-4 py-4 sm:py-8 max-w-full sm:max-w-4xl">
+    <div className="container mx-auto px-4 py-4 sm:py-8 overflow-x-hidden w-full max-w-[95vw] sm:max-w-4xl">
       <div className="grid gap-4 sm:gap-6 grid-cols-1">
         {/* Загальні налаштування */}
         <Card className="w-full">
@@ -694,7 +694,7 @@ export function Settings() {
         </Card>
 
         {/* Telegram Bot Settings */}
-        <Card className="glass-card">
+        <Card className="glass-card w-full overflow-hidden">
           <CardHeader>
             <CardTitle className="flex items-center gap-2">
               <BotIcon className="h-5 w-5" />
@@ -702,7 +702,7 @@ export function Settings() {
             </CardTitle>
             <CardDescription>Налаштування бота для відправки звітів</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4">
+          <CardContent className="space-y-4 px-4 sm:px-6">
             <div className="flex items-center justify-between">
               <div className="space-y-0.5">
                 <Label>Увімкнути Telegram бота</Label>
