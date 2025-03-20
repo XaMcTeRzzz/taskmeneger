@@ -177,7 +177,7 @@ export const formatDailyReport = (tasks: any[], date: Date): string => {
   if (activeTasks.length > 0) {
     report += `• Поточні:\n`;
     activeTasks.forEach((task, index) => {
-      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : 'дата не вказана';
+      const dateInfo = task.date ? safeFormatDate(task.date.toString(), { day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' }) : 'дата не вказана';
       report += `   ${index + 1}. ${task.title} (${dateInfo})\n`;
     });
   } else {
@@ -188,7 +188,7 @@ export const formatDailyReport = (tasks: any[], date: Date): string => {
   report += `\n<b>✅ ВИКОНАНІ ЗАДАЧІ (${completedTasks.length} ${getTaskWordForm(completedTasks.length)}):</b>\n`;
   if (completedTasks.length > 0) {
     completedTasks.forEach((task, index) => {
-      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : 'дата не вказана';
+      const dateInfo = task.date ? safeFormatDate(task.date.toString(), { day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' }) : 'дата не вказана';
       report += `   ${index + 1}. ${task.title} (${dateInfo})\n`;
     });
   } else {
@@ -250,7 +250,7 @@ export const formatWeeklyReport = (tasks: any[], startDate: Date, endDate: Date)
   report += `<b>⏳ АКТИВНІ ЗАДАЧІ (${activeTasks.length} ${activeWord}):</b>\n`;
   if (activeTasks.length > 0) {
     activeTasks.forEach((task, index) => {
-      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : 'дата не вказана';
+      const dateInfo = task.date ? safeFormatDate(task.date.toString(), { day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' }) : 'дата не вказана';
       report += `   ${index + 1}. ${task.title} (${dateInfo})\n`;
     });
   } else {
@@ -261,7 +261,7 @@ export const formatWeeklyReport = (tasks: any[], startDate: Date, endDate: Date)
   report += `\n<b>✅ ВИКОНАНІ ЗАДАЧІ (${completedTasks.length} ${getTaskWordForm(completedTasks.length)}):</b>\n`;
   if (completedTasks.length > 0) {
     completedTasks.forEach((task, index) => {
-      const dateInfo = task.dueDate ? safeFormatDate(task.dueDate, { day: 'numeric', month: 'long' }) : 'дата не вказана';
+      const dateInfo = task.date ? safeFormatDate(task.date.toString(), { day: 'numeric', month: 'long', hour: 'numeric', minute: 'numeric' }) : 'дата не вказана';
       report += `   ${index + 1}. ${task.title} (${dateInfo})\n`;
     });
   } else {
@@ -322,10 +322,12 @@ export const sendTestReport = async (): Promise<{ success: boolean; message?: st
       message += `<b>⏳ АКТИВНІ ЗАДАЧІ (${activeTasks.length} ${activeWord}):</b>\n`;
       if (activeTasks.length > 0) {
         activeTasks.forEach((task: any, index: number) => {
-          const formattedTaskDate = safeFormatDate(task.dueDate, { 
+          const formattedTaskDate = task.date ? safeFormatDate(task.date.toString(), { 
             day: 'numeric', 
-            month: 'long'
-          });
+            month: 'long',
+            hour: 'numeric',
+            minute: 'numeric'
+          }) : 'дата не вказана';
           message += `   ${index + 1}. ${task.title} (${formattedTaskDate})\n`;
         });
       } else {
@@ -336,10 +338,12 @@ export const sendTestReport = async (): Promise<{ success: boolean; message?: st
       message += `\n<b>✅ ВИКОНАНІ ЗАДАЧІ (${completedTasks.length} ${completedWord}):</b>\n`;
       if (completedTasks.length > 0) {
         completedTasks.slice(0, 5).forEach((task: any, index: number) => {
-          const formattedTaskDate = safeFormatDate(task.dueDate, { 
+          const formattedTaskDate = task.date ? safeFormatDate(task.date.toString(), { 
             day: 'numeric', 
-            month: 'long'
-          });
+            month: 'long',
+            hour: 'numeric',
+            minute: 'numeric'
+          }) : 'дата не вказана';
           message += `   ${index + 1}. ${task.title} (${formattedTaskDate})\n`;
         });
         
