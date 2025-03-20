@@ -590,7 +590,7 @@ export function Settings() {
           disabled={isSaving}
         >
           <SaveIcon className="mr-2" size={16} />
-          Зберегти налаштування
+          Зберегти
         </Button>
       </CardFooter>
     </Card>
