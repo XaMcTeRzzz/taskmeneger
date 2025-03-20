@@ -18,6 +18,11 @@ import {
   loadReportHistory
 } from './report-history';
 
+import {
+  checkMissedDailyReport,
+  checkMissedWeeklyReport
+} from './missed-reports';
+
 // Ключ для зберігання задач в localStorage
 const TASKS_STORAGE_KEY = 'tasks';
 
@@ -214,6 +219,41 @@ const sendWeeklyReport = async (): Promise<boolean> => {
 export const initReportScheduler = (): void => {
   console.log('Ініціалізуємо планувальник звітів...');
   
+  // Перевіряємо пропущені звіти при ініціалізації
+  const settings = loadTelegramSettings();
+  
+  // Перевіряємо пропущений щоденний звіт
+  if (checkMissedDailyReport(settings)) {
+    console.log('Виявлено пропущений щоденний звіт, відправляємо...');
+    sendDailyReport()
+      .then(success => {
+        if (success) {
+          console.log('Пропущений щоденний звіт успішно відправлено');
+        } else {
+          console.error('Помилка відправки пропущеного щоденного звіту');
+        }
+      })
+      .catch(error => {
+        console.error('Помилка під час відправки пропущеного щоденного звіту:', error);
+      });
+  }
+
+  // Перевіряємо пропущений щотижневий звіт
+  if (checkMissedWeeklyReport(settings)) {
+    console.log('Виявлено пропущений щотижневий звіт, відправляємо...');
+    sendWeeklyReport()
+      .then(success => {
+        if (success) {
+          console.log('Пропущений щотижневий звіт успішно відправлено');
+        } else {
+          console.error('Помилка відправки пропущеного щотижневого звіту');
+        }
+      })
+      .catch(error => {
+        console.error('Помилка під час відправки пропущеного щотижневого звіту:', error);
+      });
+  }
+
   // Перевіряємо кожні 15 секунд, чи потрібно відправити звіт
   setInterval(() => {
     try {
@@ -222,7 +262,7 @@ export const initReportScheduler = (): void => {
       
       // Отримуємо поточний час у форматі HH:MM
       const now = new Date();
-      const currentTimeStr = `${now.getHours()}:${now.getMinutes()}`;
+      const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
       
       console.log(`Перевірка розкладу звітів: ${currentTimeStr}`);
       
