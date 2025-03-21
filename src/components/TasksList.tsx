@@ -37,14 +37,8 @@ interface TasksListProps {
 
 export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTask }: TasksListProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [completedTasks, setCompletedTasks] = useState(
-    tasks.filter(task => task.completed).length
-  );
   
-  useEffect(() => {
-    setCompletedTasks(tasks.filter(task => task.completed).length);
-  }, [tasks]);
-  
+  // Фільтруємо задачі за датою
   const dateFilteredTasks = date 
     ? tasks.filter(task => 
         task.date.getDate() === date.getDate() &&
@@ -53,6 +47,10 @@ export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTas
       )
     : tasks;
 
+  // Підраховуємо кількість виконаних задач серед відфільтрованих
+  const completedTasks = dateFilteredTasks.filter(task => task.completed).length;
+
+  // Фільтруємо задачі за пошуковим запитом
   const filteredTasks = searchQuery
     ? dateFilteredTasks.filter(task => 
         task.title.toLowerCase().includes(searchQuery.toLowerCase()) || 
@@ -62,10 +60,6 @@ export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTas
     : dateFilteredTasks;
 
   const handleComplete = (id: string) => {
-    const task = tasks.find(t => t.id === id);
-    if (task) {
-      setCompletedTasks(prev => task.completed ? prev - 1 : prev + 1);
-    }
     onTaskComplete(id);
   };
 
@@ -90,11 +84,11 @@ export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTas
       <div className="flex justify-between items-center">
         <h2 className="text-xl font-semibold text-primary capitalize">{formattedDate}</h2>
         <span className="text-xs px-2 py-1 rounded-full bg-primary/20 text-primary">
-          {filteredTasks.length} {getTaskWordForm(filteredTasks.length)}
+          {dateFilteredTasks.length} {getTaskWordForm(dateFilteredTasks.length)}
         </span>
       </div>
       
-      <ProgressBar completed={completedTasks} total={tasks.length} />
+      <ProgressBar completed={completedTasks} total={dateFilteredTasks.length} />
       
       <div className="relative">
         <Search className="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-muted-foreground" />
