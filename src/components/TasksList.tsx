@@ -32,10 +32,9 @@ interface TasksListProps {
   date?: Date;
   onTaskComplete: (id: string) => void;
   onTaskDelete: (id: string) => void;
-  onEditTask: (id: string, updatedTask: { title: string; description?: string; date: Date; category?: string }) => void;
 }
 
-export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTask }: TasksListProps) {
+export function TasksList({ tasks, date, onTaskComplete, onTaskDelete }: TasksListProps) {
   const [searchQuery, setSearchQuery] = useState("");
   
   // Фільтруємо задачі за датою
@@ -65,10 +64,6 @@ export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTas
 
   const handleDelete = (id: string) => {
     onTaskDelete(id);
-  };
-
-  const handleEdit = (id: string, updatedTask: { title: string; description?: string; date: Date; category?: string }) => {
-    onEditTask(id, updatedTask);
   };
 
   const formattedDate = date
@@ -124,7 +119,6 @@ export function TasksList({ tasks, date, onTaskComplete, onTaskDelete, onEditTas
               category={task.category}
               onComplete={handleComplete}
               onDelete={handleDelete}
-              onEdit={handleEdit}
             />
           ))}
         </div>
