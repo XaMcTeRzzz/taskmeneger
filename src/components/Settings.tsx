@@ -7,7 +7,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { Form, FormField, FormItem, FormLabel, FormControl, FormDescription } from "@/components/ui/form";
 import { useForm } from "react-hook-form";
 import { toast } from "@/hooks/use-toast";
-import { BotIcon, CheckIcon, SaveIcon, CalendarIcon, MailIcon, BellIcon, Moon, Sun, BellRing, Languages, Trash2, Mic, Clock, Send, AlertCircle, UploadCloud, FileKey } from "lucide-react";
+import { BotIcon, CheckIcon, SaveIcon, CalendarIcon, MailIcon, BellIcon, BellRing, Languages, Trash2, Mic, Clock, Send, AlertCircle, UploadCloud, FileKey } from "lucide-react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
@@ -62,7 +62,6 @@ const DEFAULT_SIRI_SETTINGS: SiriSettings = {
 
 export function Settings() {
   const [isSaving, setIsSaving] = useState(false);
-  const [theme, setTheme] = useState<"dark" | "light" | "system">("dark");
   const [notifications, setNotifications] = useState(true);
   const [language, setLanguage] = useState("uk");
   
@@ -232,40 +231,6 @@ export function Settings() {
     }
     
     speechSynthesis.speak(utterance);
-  };
-
-  useEffect(() => {
-    // При першому завантаженні перевіряємо збережену тему
-    const savedTheme = localStorage.getItem("theme") as "dark" | "light" | "system" | null;
-    if (savedTheme) {
-      setTheme(savedTheme);
-      applyTheme(savedTheme);
-    }
-  }, []);
-
-  const applyTheme = (newTheme: "dark" | "light" | "system") => {
-    const root = window.document.documentElement;
-    
-    if (newTheme === "system") {
-      const systemTheme = window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light";
-      root.classList.toggle("dark", systemTheme === "dark");
-    } else {
-      root.classList.toggle("dark", newTheme === "dark");
-    }
-    
-    localStorage.setItem("theme", newTheme);
-  };
-
-  const handleThemeChange = (newTheme: "dark" | "light" | "system") => {
-    setTheme(newTheme);
-    applyTheme(newTheme);
-    
-    toast({
-      title: "Тема змінена",
-      description: `Обрано ${
-        newTheme === "dark" ? "темну" : newTheme === "light" ? "світлу" : "системну"
-      } тему`,
-    });
   };
 
   const handleClearData = () => {
@@ -617,78 +582,38 @@ export function Settings() {
   };
 
   return (
-    <div className="container mx-auto px-4 py-4 sm:py-8 overflow-x-hidden w-full max-w-[95vw] sm:max-w-4xl">
-      <div className="grid gap-4 sm:gap-6 grid-cols-1">
-        {/* Загальні налаштування */}
-        <Card className="w-full">
-          <CardHeader className="space-y-1">
-            <CardTitle className="text-lg sm:text-xl">Загальні налаштування</CardTitle>
-            <CardDescription className="text-sm">Налаштування теми, мови та сповіщень</CardDescription>
+    <div className="container mx-auto p-4 space-y-6">
+      <div className="flex flex-col space-y-4">
+        <Card>
+          <CardHeader>
+            <CardTitle>Налаштування</CardTitle>
+            <CardDescription>Налаштуйте додаток під свої потреби</CardDescription>
           </CardHeader>
-          <CardContent className="space-y-3 sm:space-y-4">
-            <div className="flex flex-col space-y-3 sm:space-y-4">
-              <div className="flex flex-col space-y-2">
-                <Label>Тема</Label>
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant={theme === "light" ? "default" : "outline"}
-                    className="flex-1 min-w-[120px]"
-                    onClick={() => setTheme("light")}
-                  >
-                    <Sun className="h-4 w-4 mr-2" />
-                    Світла
-                  </Button>
-                  <Button
-                    variant={theme === "dark" ? "default" : "outline"}
-                    className="flex-1 min-w-[120px]"
-                    onClick={() => setTheme("dark")}
-                  >
-                    <Moon className="h-4 w-4 mr-2" />
-                    Темна
-                  </Button>
-                </div>
+          <CardContent className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <BellIcon className="h-4 w-4" />
+                <Label>Сповіщення</Label>
               </div>
-
-              <div className="flex flex-col space-y-2">
+              <Switch
+                checked={notifications}
+                onCheckedChange={setNotifications}
+              />
+            </div>
+            <div className="flex items-center justify-between">
+              <div className="flex items-center space-x-2">
+                <Languages className="h-4 w-4" />
                 <Label>Мова</Label>
-                <Select value={language} onValueChange={setLanguage}>
-                  <SelectTrigger className="w-full">
-                    <SelectValue>
-                      <div className="flex items-center">
-                        <Languages className="h-4 w-4 mr-2" />
-                        {language === "uk" ? "Українська" : "English"}
-                      </div>
-                    </SelectValue>
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="uk">
-                      <div className="flex items-center">
-                        <Languages className="h-4 w-4 mr-2" />
-                        Українська
-                      </div>
-                    </SelectItem>
-                    <SelectItem value="en">
-                      <div className="flex items-center">
-                        <Languages className="h-4 w-4 mr-2" />
-                        English
-                      </div>
-                    </SelectItem>
-                  </SelectContent>
-                </Select>
               </div>
-
-              <div className="flex items-center justify-between">
-                <div className="space-y-0.5">
-                  <Label>Сповіщення</Label>
-                  <div className="text-sm text-muted-foreground">
-                    Отримувати сповіщення про нові задачі
-                  </div>
-                </div>
-                <Switch
-                  checked={notifications}
-                  onCheckedChange={setNotifications}
-                />
-              </div>
+              <Select value={language} onValueChange={setLanguage}>
+                <SelectTrigger className="w-32">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="uk">Українська</SelectItem>
+                  <SelectItem value="en">English</SelectItem>
+                </SelectContent>
+              </Select>
             </div>
           </CardContent>
         </Card>
